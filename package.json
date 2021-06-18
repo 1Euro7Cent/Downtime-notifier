@@ -1,0 +1,16 @@
+{
+  "name": "downtimenotifier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^12.5.1",
+    "node-json-db": "^1.1.0",
+    "pretty-ms": "^7.0.1"
+  }
+}
