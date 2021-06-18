@@ -149,7 +149,8 @@ bot.on('message', async (message, guild) => {
         message.channel.send(new MessageEmbed()
           .setColor(0x00ff00)
           .setTitle('Help')
-          .setDescription(`[Invite me](https://discord.com/oauth2/authorize?client_id=818105614055112715&permissions=18496&scope=bot)`)
+          .setDescription(`[Invite me](https://discord.com/oauth2/authorize?client_id=818105614055112715&permissions=18496&scope=bot)
+[Github repo](https://github.com/1Euro7Cent/Downtime-notifier)`)
           .addField('available commands', `
         <> = required; [] = optional 
 
