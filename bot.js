@@ -60,7 +60,8 @@ bot.on('message', async (message, guild) => {
           if (ChannelID > 100) {
 
             var data = db.getData("/");
-            if (typeof data.guild[message.guild.id] === 'undefined') {
+            if (typeof data?.guild?.[message.guild.id] === 'undefined') {
+              data.guild = {}
               data.guild[message.guild.id] = {}
             }
             data.guild[message.guild.id].brodcastChannel = ChannelID
@@ -86,7 +87,7 @@ bot.on('message', async (message, guild) => {
           if (typeof mention === 'undefined') return message.react('❌'), message.reply('you need to mention a bot');
           if (mention.bot === false) return message.reply('this user isnt a bot'), message.react('❌');
           var data = db.getData("/");
-          if (typeof data.guild[message.guild.id] !== 'undefined') {
+          if (typeof data?.guild?.[message.guild.id] !== 'undefined') {
             data.guild[message.guild.id].bots[mention.id] = {
               offlineTimestamp: Date.now(),
               onlineTimestamp: Date.now()
