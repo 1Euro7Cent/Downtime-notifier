@@ -12,6 +12,12 @@
     "prefix": "d!"
 }
 ```
+make shure these are enabled:
+
+![image](https://user-images.githubusercontent.com/67194495/143293160-2ef71b05-0445-432b-b571-1451dc5d7a09.png)
+
+
+
 + run `npm install` in the cmdline to install all dependencies
 
 ## Running
