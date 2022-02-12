@@ -4,5 +4,6 @@ node_modules
 logs
 oldDb.json
 newDb.json
+commands.json
 
 .vscode
