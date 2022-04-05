@@ -21,11 +21,13 @@ module.exports = {
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
+     * @param {JsonDB} db
      */
-    async execute(bot, interaction) {
+    async execute(bot, interaction, db) {
+        //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             let user = interaction.options.getUser('user')
-            let db = new JsonDB(new Config("database", true, true, '/'))
+            // let db = new JsonDB(new Config("database", true, true, '/'))
             let data = db.getData('/')
             let gData = data[interaction.guild.id]
             if (!gData) gData = {

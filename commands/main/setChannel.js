@@ -1,4 +1,4 @@
-const { Client, CommandInteraction, MessageEmbed, Permissions } = require('discord.js')
+const { Client, CommandInteraction, MessageEmbed, Permissions, TextChannel } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
 // database stuff
 const { JsonDB } = require('node-json-db')
@@ -24,12 +24,18 @@ module.exports = {
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
+     * @param {JsonDB} db
      */
-    execute(bot, interaction) {
+    execute(bot, interaction, db) {
+        // @ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
+            /**
+             * @type {TextChannel}
+             */
+            // @ts-ignore
             let channel = interaction.options.getChannel('channel')
 
-            let db = new JsonDB(new Config("database", true, true, '/'))
+            // let db = new JsonDB(new Config("database", true, true, '/'))
             let data = db.getData('/')
             let gData = data[interaction.guild.id]
             if (!gData) gData = {

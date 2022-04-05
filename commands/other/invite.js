@@ -15,7 +15,7 @@ module.exports = {
             embeds: [
                 new MessageEmbed()
                     .setTitle('Do you like the bot?')
-                    .setDescription(`[Invite me](https://discord.com/api/oauth2/authorize?client_id=${bot.user.id}&permissions=379968&scope=bot%20applications.commands)\n[Support server](https://discord.gg/ht8bZeF)`)
+                    .setDescription(`[Invite me](https://discord.com/api/oauth2/authorize?client_id=${bot.user.id}&permissions=18432&scope=bot%20applications.commands)\n[Support server](https://discord.gg/ht8bZeF)`)
                     .setColor('#0099ff')
             ]
         })

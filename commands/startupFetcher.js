@@ -1,4 +1,4 @@
-const { Client, CommandInteraction, MessageEmbed } = require('discord.js')
+const { Client, CommandInteraction, MessageEmbed, TextChannel } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
@@ -11,14 +11,15 @@ module.exports = {
     /**
      * this runs on startup
      * @param {Client} bot
+     * @param {JsonDB} db
      */
-    async startup(bot) {
+    async startup(bot, db) {
         console.log('---- Fetcher startup ----')
         let start = Date.now()
-        let db = new JsonDB(new Config("database", false, true, '/'))
+        // let db = new JsonDB(new Config("database", false, true, '/'))
         let data = db.getData('/')
         for (let guild_ in data) {
-            guildData = data[guild_]
+            let guildData = data[guild_]
 
             process.stdout.write(`fetching guild ${guild_}... `)
             let guild = bot.guilds.cache.get(guild_)
@@ -54,6 +55,11 @@ module.exports = {
             if (missing.length > 0) {
                 // if broadcast channel is set, send message that users were removed
                 if (guildData.broadcastChannel) {
+                    /**
+                    * @type {TextChannel}
+                    */
+
+                    // @ts-ignore
                     let channel = await bot.channels.cache.get(guildData.broadcastChannel)
                     if (channel) {
                         let desc = "The following bots were not found anymore and removed from the watchlist:"

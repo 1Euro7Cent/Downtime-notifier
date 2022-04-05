@@ -15,9 +15,10 @@ module.exports = {
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
+     * @param {JsonDB} db
      */
-    async execute(bot, interaction) {
-        let db = new JsonDB(new Config("database", true, true, '/'))
+    async execute(bot, interaction, db) {
+        // let db = new JsonDB(new Config("database", true, true, '/'))
         let data = db.getData('/')
         let guildData = data[interaction.guild.id]
         if (!guildData) return interaction.reply('No data found for this guild')

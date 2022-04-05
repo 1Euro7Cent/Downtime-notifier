@@ -1,31 +1,35 @@
-const fs = require('fs');
+const fs = require('fs')
 const { Client, Intents, MessageEmbed } = require('discord.js')
-const { REST } = require('@discordjs/rest');
-const { Routes } = require('discord-api-types/v9');
-const startup = require("startup-args");
-const args = new startup.StartupArgs("-");
-const process = require('process');
+const { REST } = require('@discordjs/rest')
+const { Routes } = require('discord-api-types/v9')
+const startup = require("startup-args")
+const args = new startup.StartupArgs("-")
+const process = require('process')
 const Cooldown = require('node-cooldown')
 const prettyMs = require('pretty-ms')
+const { JsonDB } = require('node-json-db')
+const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
 
 // make shure all important dirs nad config exist
 if (!fs.existsSync('./config.json')) fs.writeFileSync('./config.json', JSON.stringify({ token: 'get your token at https://discord.com/developers/applications', "logs": { crash: "crash{date}.log" }, }, null, 2))
 if (!fs.existsSync('./logs')) fs.mkdirSync('./logs')
 
-const config = require('./config.json');
+let db = new JsonDB(new Config("database", true, true, '/'))
+
+const config = require('./config.json')
 
 process.on('exit', function (code) {
-    console.log(`Process exited with code: ${code}`);
-});
+    console.log(`Process exited with code: ${code}`)
+})
 
 process.on('uncaughtException', err => {
     let date = new Date()
-    let year = date.getFullYear()
-    let month = date.getMonth() + 1
-    let day = date.getDate()
-    let hour = date.getHours()
-    let minute = date.getMinutes()
-    let seconds = date.getSeconds()
+    let year = date.getFullYear().toString()
+    let month = (date.getMonth() + 1).toString()
+    let day = date.getDate().toString()
+    let hour = date.getHours().toString()
+    let minute = date.getMinutes().toString()
+    let seconds = date.getSeconds().toString()
 
 
     let filename = './logs/' + (config.logs?.crash.replace('{y}', year).replace('{m}', month).replace('{d}', day).replace('{h}', hour).replace('{i}', minute).replace('{s}', seconds) || 'latestCrash.log')
@@ -146,18 +150,22 @@ bot.on('ready', () => {
                         );//*/
             // console.log(cmdToDc)
             if (!fs.existsSync('./commands.json')) fs.writeFileSync('./commands.json', '{}')
+            /**
+             * @type {Object}
+             */
             var oldCommands = fs.readFileSync('./commands.json')
+            // @ts-ignore
             oldCommands = JSON.stringify(JSON.parse(oldCommands))
             if (JSON.stringify(cmdToDc) != oldCommands) {
-                process.stdout.write(`refreshing slash commands... `);
+                process.stdout.write(`refreshing slash commands... `)
 
                 // var applications = await bot.get
-                await rest.put(Routes.applicationCommands(bot.user.id), { body: cmdToDc });
+                await rest.put(Routes.applicationCommands(bot.user.id), { body: cmdToDc })
 
-                console.log('DONE');
+                console.log('DONE')
 
 
-                console.log('Successfully reloaded application slash commands.');
+                console.log('Successfully reloaded application slash commands.')
 
             }
             else {
@@ -171,7 +179,7 @@ bot.on('ready', () => {
 
             for (let cmd of commands) {
                 if (cmd.startup) {
-                    await cmd.startup(bot)
+                    await cmd.startup(bot, db)
                 }
                 else {
                     console.log(`skipping ${cmd?.data?.name ?? cmd?.fName} startup`)
@@ -179,8 +187,8 @@ bot.on('ready', () => {
                 if (cmd.interval) {
                     if (cmd.timed) {
                         setInterval(async () => {
-                            await cmd.timed(bot)
-                        }, cmd.interval);
+                            await cmd.timed(bot, db)
+                        }, cmd.interval)
                     }
                     else {
                         console.log(`skipping ${cmd?.data?.name ?? cmd?.fName} interval because of no timed function`)
@@ -193,11 +201,11 @@ bot.on('ready', () => {
             console.log(`logged in as ${bot.user.tag}`)
 
         } catch (error) {
-            console.error(error);
-            console.log('Failed to refresh application slash commands.');
-            process.exit(1);
+            console.error(error)
+            console.log('Failed to refresh application slash commands.')
+            process.exit(1)
         }
-    })(); //*/
+    })() //*/
 
     // set bot status
     // bot.user.setActivity('Now with slash commands')
@@ -208,7 +216,7 @@ bot.on('ready', () => {
 })
 bot.on('interactionCreate', interaction => {
     // console.log('interaction', interaction)
-    if (!interaction.isCommand()) return;
+    if (!interaction.isCommand()) return
     // console.log('after isCommand')
     if (!commands) {
         interaction.reply('I am not ready yet, please try again later')
@@ -217,8 +225,10 @@ bot.on('interactionCreate', interaction => {
     // console.log('all commands', commands)
     for (let cmd of commands) {
         if (cmd?.data?.name == interaction.commandName) {
-            console.log(`a new command ${cmd.data.name} was called by ${interaction.user.tag} in guild ${interaction.guild.name} in channel ${interaction.channel.name} `);
+            //@ts-ignore
+            console.log(`a new command ${cmd.data.name} was called by ${interaction.user?.tag} in guild ${interaction.guild?.name} in channel ${interaction.channel?.name} `)
             // get all args
+            //@ts-ignore
             var args = interaction.options._hoistedOptions
             for (let arg in args) {
                 console.log(`${args[arg].name}: ${args[arg].value}`)
@@ -230,7 +240,7 @@ bot.on('interactionCreate', interaction => {
                 rateLimitData = cd.check(interaction.user.id)
                 if (rateLimitData.pass) {
                     // cooldown passed
-                    cmd.execute(bot, interaction)
+                    cmd.execute(bot, interaction, db)
                 }
                 else {
                     // blocked by cooldown
@@ -245,12 +255,12 @@ bot.on('interactionCreate', interaction => {
                 }
             }
             else {
-                cmd.execute(bot, interaction)
+                cmd.execute(bot, interaction, db)
             }
             // console.log('END command OUTPUT')
         }
     }
-});
+})
 bot.on('rateLimit', (data) => {
     console.log('##########rateLimit##########')
     console.log(data)
@@ -265,4 +275,4 @@ bot.on('messageCreate', message => {
         }
     }
 })
-bot.login(config.token);
+bot.login(config.token)

@@ -32,6 +32,7 @@ module.exports = {
     * this runs on startup
     * @param {Client} bot
     */
+    // @ts-ignore
     startup(bot) { commands = JSON.parse(fs.readFileSync('./commands.json')) }
 
 }
