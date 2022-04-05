@@ -33,7 +33,7 @@
 - if you have the V1 version, and you want to migrate the db to v2 (this)
   you can use the following steps:
 
-* - Rename the db to "oldDb.json"
-* - and run "node migrateDb.js"
-* - there should be a new file called "newDb.json". That is the migrated db.
-* - now rename that to "database.json"
+* - Rename the db to `oldDb.json`
+* - and run `node migrateDb.js`
+* - there should be a new file called `newDb.json`. That is the migrated db.
+* - now rename that to `database.json`
