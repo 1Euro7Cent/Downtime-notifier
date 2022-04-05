@@ -18,6 +18,8 @@ let db = new JsonDB(new Config("database", true, true, '/'))
 
 const config = require('./config.json')
 
+
+
 process.on('exit', function (code) {
     console.log(`Process exited with code: ${code}`)
 })
