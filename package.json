@@ -1,14 +1,11 @@
 {
   "dependencies": {
     "@discordjs/rest": "^0.3.0",
-    "axios": "^0.25.0",
-    "console_2darray_formater": "^1.0.0",
-    "discord-api-types": "^0.27.0",
+    "discord-api-types": "^0.31.0",
     "discord.js": "^13.6.0",
     "node-cooldown": "^0.0.4",
-    "node-json-db": "^1.4.1",
+    "node-json-db": "^1.5.0",
     "pretty-ms": "^7.0.1",
-    "qrcode": "^1.5.0",
     "startup-args": "^0.0.1"
   },
   "nodemonConfig": {
@@ -18,7 +15,7 @@
       "database.json"
     ]
   },
-  "name": "commandhandlerv3",
+  "name": "downtime-notifier",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -26,7 +23,7 @@
     "dev": "npm i && nodemon index.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "author": "1euro7cent",
+  "license": "MIT",
+  "description": "this tracks downtime for discord bots"
 }
