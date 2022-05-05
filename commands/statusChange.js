@@ -52,7 +52,6 @@ module.exports = {
             for (let user in gData.users) {
                 if (gData.users[user].id == newPresence.user.id) {
                     // if the user gone online
-                    // todo: write timestamps to db
                     if (oldPresence.status == 'offline' && newPresence.status != 'offline') {
                         let mes = getMessage(bot, newPresence.user, gData.users[user], 'online')
                         console.log(`${newPresence.user.username} went online`)
@@ -65,7 +64,7 @@ module.exports = {
 
                         gData.users[user].wentOnline = Date.now()
                         if (channel) {
-                            await channel.send(mes)
+                            await channel.send(mes).catch(() => { }) // todo: remove user from db if error
                         }
                     }
                     // if the user went offline
@@ -81,7 +80,7 @@ module.exports = {
 
                         gData.users[user].wentOffline = Date.now()
                         if (channel) {
-                            await channel.send(mes)
+                            await channel.send(mes).catch(() => { }) // todo: remove user from db if error
                         }
 
                     }
