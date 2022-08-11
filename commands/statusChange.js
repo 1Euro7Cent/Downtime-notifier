@@ -26,7 +26,7 @@ function getMessage(bot, user, tUser, type) {
         .setColor(type == 'offline' ? 0xff0000 : 0x00ff00)
         .addField(
             `${type == 'offline' ? 'online' : 'offline'}time`,
-            `\`${t ? prettyMs(Date.now() - t, { verbose: true }) + (unsure ? " (unsure)" : "") : 'Unknown'}\``)
+            `\`${t ? prettyMs(Date.now() - t, { verbose: true }) + (unsure ? " (unsure)" : "") : 'Unknown'}\``) // todo: fix deprication warning
     return {
         embeds: [embed]
     }
@@ -41,55 +41,60 @@ module.exports = {
      * @param {Client} bot
      * @param {JsonDB} db
      */
-    async startup(bot, db) {
+    async startup(bot, db, errorMessager) {
         console.log('---- Initializing StatusChangeListener ----')
         bot.on('presenceUpdate', async (oldPresence, newPresence) => {
             if (!oldPresence) return
             // db.reload()
-            let data = db.getData('/')
-            let gData = data[newPresence.guild.id]
-            if (!gData || !gData.broadcastChannel) return
-            for (let user in gData.users) {
-                if (gData.users[user].id == newPresence.user.id) {
-                    // if the user gone online
-                    if (oldPresence.status == 'offline' && newPresence.status != 'offline') {
-                        let mes = getMessage(bot, newPresence.user, gData.users[user], 'online')
-                        console.log(`${newPresence.user.username} went online`)
-                        /**
-                         * @type {TextChannel}
-                         */
+            try {
+                let data = db.getData('/')
+                let gData = data[newPresence.guild.id]
+                if (!gData || !gData.broadcastChannel) return
+                for (let user in gData.users) {
+                    if (gData.users[user].id == newPresence.user.id) {
+                        // if the user gone online
+                        if (oldPresence.status == 'offline' && newPresence.status != 'offline') {
+                            let mes = getMessage(bot, newPresence.user, gData.users[user], 'online')
+                            console.log(`${newPresence.user.username} went online`)
+                            /**
+                             * @type {TextChannel}
+                             */
 
-                        // @ts-ignore
-                        let channel = await bot.channels.cache.get(gData.broadcastChannel)
+                            // @ts-ignore
+                            let channel = await bot.channels.cache.get(gData.broadcastChannel)
 
-                        gData.users[user].wentOnline = Date.now()
-                        if (channel) {
-                            await channel.send(mes).catch(() => { }) // todo: remove user from db if error
+
+                            gData.users[user].wentOnline = Date.now()
+                            if (channel) {
+                                await channel.send(mes).catch((e) => { errorMessager(channel, e) }) // todo: remove user from db if error
+                            }
                         }
-                    }
-                    // if the user went offline
-                    if (oldPresence.status != 'offline' && newPresence.status == 'offline') {
-                        let mes = getMessage(bot, newPresence.user, gData.users[user], 'offline')
-                        console.log(`${newPresence.user.username} went offline`)
-                        /**
-                         * @type {TextChannel}
-                         */
+                        // if the user went offline
+                        if (oldPresence.status != 'offline' && newPresence.status == 'offline') {
+                            let mes = getMessage(bot, newPresence.user, gData.users[user], 'offline')
+                            console.log(`${newPresence.user.username} went offline`)
+                            /**
+                             * @type {TextChannel}
+                             */
 
-                        // @ts-ignore
-                        let channel = await bot.channels.cache.get(gData.broadcastChannel)
+                            // @ts-ignore
+                            let channel = await bot.channels.cache.get(gData.broadcastChannel)
 
-                        gData.users[user].wentOffline = Date.now()
-                        if (channel) {
-                            await channel.send(mes).catch(() => { }) // todo: remove user from db if error
+                            gData.users[user].wentOffline = Date.now()
+                            if (channel) {
+                                await channel.send(mes).catch((e) => { errorMessager(channel, e) }) // todo: remove user from db if error
+                            }
+
                         }
-
+                        // data.users = gData.users
+                        db.push('/', data)
                     }
-                    // data.users = gData.users
-                    db.push('/', data)
+
                 }
-
+                // db.save()
+            } catch (e) {
+                errorMessager(undefined, e)
             }
-            // db.save()
         })
         // console.log(bot.eventNames())
     },

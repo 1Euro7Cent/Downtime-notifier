@@ -2,7 +2,7 @@
   "dependencies": {
     "@discordjs/rest": "^0.3.0",
     "discord-api-types": "^0.31.0",
-    "discord.js": "^13.6.0",
+    "discord.js": "^13.10.2",
     "node-cooldown": "^0.0.4",
     "node-json-db": "^1.5.0",
     "pretty-ms": "^7.0.1",
@@ -12,11 +12,12 @@
     "ignore": [
       "commands.json",
       "logs/",
+      "temp/",
       "database.json"
     ]
   },
   "name": "downtime-notifier",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "main": "index.js",
   "scripts": {
     "clean": "rmdir node_modules /s /q && del package-lock.json /q && rmdir logs /s /q",

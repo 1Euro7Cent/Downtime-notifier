@@ -3,21 +3,15 @@ const { SlashCommandBuilder } = require('@discordjs/builders')
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
 const tools = require('../../tools')
+const fs = require('fs')
 
 module.exports = {
     disabled: false,
     data: new SlashCommandBuilder()
-        .setName('remove')
-        .setDescription('removes a bot from the watchlist')
-        .addUserOption(builder => {
-            builder.setName('user')
-                .setRequired(true)
-                .setDescription('the user to remove')
-
-            return builder
-        })
+        .setName('getdata')
+        .setDescription('Gets the collected data of this guild')
     ,
-    cooldown: null, // milliseconds
+    cooldown: 10 * 1000, // 10 seconds
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
@@ -26,22 +20,16 @@ module.exports = {
     async execute(bot, interaction, db) {
         //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
-            let user = interaction.options.getUser('user')
-            // let db = new JsonDB(new Config("database", true, true, '/'))
             let data = db.getData('/')
-            let gData = data[interaction.guild.id]
-            if (!gData) gData = {
-                broadcastChannel: null,
-                users: []
-            }
-            let users = gData.users.filter(u => u.id == user.id)
-            if (users.length == 0) {
+            // @ts-ignore
+            let gData = data[interaction.guild?.id]
 
+            if (!gData) {
                 await interaction.reply({
                     embeds: [
                         new MessageEmbed()
                             .setTitle('Error')
-                            .setDescription(`User \`${user.username}\` is not in the watchlist`)
+                            .setDescription(`No data found for this guild`)
                             .setColor(0xff0000)
                     ]
 
@@ -49,19 +37,47 @@ module.exports = {
                 return
             }
 
-            gData.users = tools.removeElemByName(gData.users, users[0])
+            let rawData = JSON.stringify(gData)
+            let formattedData = JSON.stringify(gData, null, 4)
 
-            db.push('/', data)
+            let message = `
+Raw:
+\`\`\`${rawData}\`\`\`
 
-            await interaction.reply({
-                embeds: [
-                    new MessageEmbed()
-                        .setTitle(`Success`)
-                        .setDescription(`\`${user.username}\` has been removed from the watchlist.`)
-                        .setColor(0x00ff00)
-                ]
-            })
+Formatted:
+\`\`\`${formattedData}\`\`\`
+                        `
+
+            if (message.length > 2000) {
+                // create a file and send it
+                fs.writeFileSync(`./temp/${interaction.guild.id}.txt`, message)
+                await interaction.reply({
+                    files: [
+                        `./temp/${interaction.guild.id}.txt`
+                    ]
+                })
+                fs.unlinkSync(`./temp/${interaction.guild.id}.txt`)
+
+
+            }
+            else {
+                await interaction.reply({
+                    embeds: [
+                        new MessageEmbed()
+                            .setTitle('Data')
+                            .setDescription(message)
+                            .setColor(0x00ff00)
+                    ]
+
+                })
+            }
         }
+
+
+
+
+
+
         else {
             await interaction.reply({
                 embeds: [

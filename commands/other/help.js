@@ -2,7 +2,7 @@ const { Client, CommandInteraction, MessageEmbed } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
 const fs = require('fs')
 
-var commands = []
+let commands = []
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,10 +13,12 @@ module.exports = {
      * @param {Client} bot
      * @param {CommandInteraction} interaction
      */
-    execute(bot, interaction) {
-        var desc = `[Invite me](https://discord.com/api/oauth2/authorize?client_id=${bot.user.id}&permissions=18432&scope=bot%20applications.commands)
-[Github repo](https://github.com/1Euro7Cent/Downtime-notifier)\n\n`
-        var embed = new MessageEmbed()
+    async execute(bot, interaction) {
+        let desc = `[Invite me](https://discord.com/api/oauth2/authorize?client_id=${bot.user.id}&permissions=18432&scope=bot%20applications.commands)
+[Github repo](https://github.com/1Euro7Cent/Downtime-notifier)
+Profile picture by [@JBugel#0001](https://github.com/Vibecord)
+\n\n`
+        let embed = new MessageEmbed()
             .setTitle('Help command')
             .setColor('#d4ff00')
 
@@ -24,7 +26,7 @@ module.exports = {
             desc += `**/${command.name}**: ${command.description}\n`
         }
         embed.setDescription(desc)
-        interaction.reply({
+        await interaction.reply({
             embeds: [embed]
         })
     },

@@ -45,7 +45,7 @@ module.exports = {
             }
         }
 
-        interaction.editReply({
+        await interaction.editReply({
             embeds: [
                 new MessageEmbed()
                     .setTitle('Watchlist')

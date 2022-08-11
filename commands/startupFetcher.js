@@ -13,7 +13,7 @@ module.exports = {
      * @param {Client} bot
      * @param {JsonDB} db
      */
-    async startup(bot, db) {
+    async startup(bot, db, errorMessager) {
         console.log('---- Fetcher startup ----')
         let start = Date.now()
         // let db = new JsonDB(new Config("database", false, true, '/'))

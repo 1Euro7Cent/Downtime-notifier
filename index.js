@@ -1,5 +1,5 @@
 const fs = require('fs')
-const { Client, Intents, MessageEmbed } = require('discord.js')
+const { Client, Intents, MessageEmbed, CommandInteraction, GuildChannel, GuildTextBasedChannel } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const startup = require("startup-args")
@@ -13,6 +13,12 @@ const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
 // make shure all important dirs nad config exist
 if (!fs.existsSync('./config.json')) fs.writeFileSync('./config.json', JSON.stringify({ token: 'get your token at https://discord.com/developers/applications', "logs": { crash: "crash{date}.log" }, }, null, 2))
 if (!fs.existsSync('./logs')) fs.mkdirSync('./logs')
+if (!fs.existsSync('./temp')) fs.mkdirSync('./temp')
+
+// wipe temp folder at startup to make shure no old files are left
+fs.readdirSync('./temp').forEach(file => {
+    fs.unlinkSync(`./temp/${file}`)
+})
 
 let db = new JsonDB(new Config("database", true, true, '/'))
 
@@ -178,27 +184,30 @@ bot.on('ready', () => {
 
 
 
-
-            for (let cmd of commands) {
-                if (cmd.startup) {
-                    await cmd.startup(bot, db)
-                }
-                else {
-                    console.log(`skipping ${cmd?.data?.name ?? cmd?.fName} startup`)
-                }
-                if (cmd.interval) {
-                    if (cmd.timed) {
-                        setInterval(async () => {
-                            await cmd.timed(bot, db)
-                        }, cmd.interval)
+            try {
+                for (let cmd of commands) {
+                    if (cmd.startup) {
+                        await cmd.startup(bot, db, errorMessager)
                     }
                     else {
-                        console.log(`skipping ${cmd?.data?.name ?? cmd?.fName} interval because of no timed function`)
+                        console.log(`skipping ${cmd?.data?.name ?? cmd?.fName} startup`)
+                    }
+                    if (cmd.interval) {
+                        if (cmd.timed) {
+                            setInterval(async () => {
+                                await cmd.timed(bot, db)
+                            }, cmd.interval)
+                        }
+                        else {
+                            console.log(`skipping ${cmd?.data?.name ?? cmd?.fName} interval because of no timed function`)
+                        }
+                    }
+                    else {
+                        console.log(`skipping ${cmd?.data?.name ?? cmd?.fName} interval`)
                     }
                 }
-                else {
-                    console.log(`skipping ${cmd?.data?.name ?? cmd?.fName} interval`)
-                }
+            } catch (e) {
+                errorMessager(undefined, e)
             }
             console.log(`logged in as ${bot.user.tag}`)
 
@@ -216,51 +225,56 @@ bot.on('ready', () => {
         bot.user.setActivity('If im not working ping me for info')
     }, 2 * 60 * 1000) // every 2 minutes
 })
-bot.on('interactionCreate', interaction => {
+bot.on('interactionCreate', async interaction => {
     // console.log('interaction', interaction)
     if (!interaction.isCommand()) return
     // console.log('after isCommand')
-    if (!commands) {
-        interaction.reply('I am not ready yet, please try again later')
-        return
-    }
-    // console.log('all commands', commands)
-    for (let cmd of commands) {
-        if (cmd?.data?.name == interaction.commandName) {
-            //@ts-ignore
-            console.log(`a new command ${cmd.data.name} was called by ${interaction.user?.tag} in guild ${interaction.guild?.name} in channel ${interaction.channel?.name} `)
-            // get all args
-            //@ts-ignore
-            var args = interaction.options._hoistedOptions
-            for (let arg in args) {
-                console.log(`${args[arg].name}: ${args[arg].value}`)
-            }
-            // console.log('command OUTPUT:')
-            let cd = cooldowns[interaction.commandName]
-            let rateLimitData
-            if (cd) {
-                rateLimitData = cd.check(interaction.user.id)
-                if (rateLimitData.pass) {
-                    // cooldown passed
-                    cmd.execute(bot, interaction, db)
+    try {
+        if (!commands) {
+            await interaction.reply('I am not ready yet, please try again later')
+            return
+        }
+        // console.log('all commands', commands)
+        for (let cmd of commands) {
+            if (cmd?.data?.name == interaction.commandName) {
+                //@ts-ignore
+                console.log(`a new command ${cmd.data.name} was called by ${interaction.user?.tag} in guild ${interaction.guild?.name} in channel ${interaction.channel?.name} `)
+                // get all args
+                //@ts-ignore
+                var args = interaction.options._hoistedOptions
+                for (let arg in args) {
+                    console.log(`${args[arg].name}: ${args[arg].value}`)
+                }
+                // console.log('command OUTPUT:')
+                let cd = cooldowns[interaction.commandName]
+                let rateLimitData
+                if (cd) {
+                    rateLimitData = cd.check(interaction.user.id)
+                    if (rateLimitData.pass) {
+                        // cooldown passed
+                        await cmd.execute(bot, interaction, db)
+                    }
+                    else {
+                        // blocked by cooldown
+                        await interaction.reply({
+                            embeds: [
+                                new MessageEmbed()
+                                    .setTitle('RateLimit hit')
+                                    .setDescription(`Wait wait wait. you are doing stuff too fast. Please wait another \`${prettyMs(rateLimitData.restTime, { verbose: true })}\` until you can use this command again.`)
+                                    .setColor(0xFF0000)
+                            ]
+                        })
+                    }
                 }
                 else {
-                    // blocked by cooldown
-                    interaction.reply({
-                        embeds: [
-                            new MessageEmbed()
-                                .setTitle('RateLimit hit')
-                                .setDescription(`Wait wait wait. you are doing stuff too fast. Please wait another \`${prettyMs(rateLimitData.restTime, { verbose: true })}\` until you can use this command again.`)
-                                .setColor(0xFF0000)
-                        ]
-                    })
+                    await cmd.execute(bot, interaction, db)
                 }
+                // console.log('END command OUTPUT')
             }
-            else {
-                cmd.execute(bot, interaction, db)
-            }
-            // console.log('END command OUTPUT')
         }
+    }
+    catch (e) {
+        errorMessager(interaction, e)
     }
 })
 bot.on('rateLimit', (data) => {
@@ -277,4 +291,56 @@ bot.on('messageCreate', message => {
         }
     }
 })
+
+
+/**
+ * @param {CommandInteraction | null | undefined | GuildTextBasedChannel} interaction
+ * @param {Error} e
+ */
+function errorMessager(interaction, e) {
+    console.error(e)
+    if (interaction instanceof CommandInteraction) {
+        interaction.reply(getErrMes(e)).catch(err => {
+            console.error(err)
+            interaction.editReply(getErrMes(e)).catch((e) => {
+                console.error(e)
+                interaction.channel?.send(getErrMes(e)).catch(err => {
+                    console.error(err)
+                })
+            })
+        })
+    }
+    else {
+
+        if (typeof interaction?.send == 'function') {
+
+            interaction.send(getErrMes(e)).catch(err => {
+                console.error(err)
+            })
+        }
+    }
+
+}
+
+/**
+ * @param {Error} e
+ */
+function getErrMes(e) {
+    return {
+        embeds: [
+            new MessageEmbed()
+                .setTitle(e.name)
+                .setColor('#ff0000')
+                .setDescription(`An error occured while running the command.
+
+\`${e.message}\`
+
+\`${e.stack}\`
+
+please report this to the developer (/invite)`)
+        ]
+    }
+}
+
+
 bot.login(config.token)

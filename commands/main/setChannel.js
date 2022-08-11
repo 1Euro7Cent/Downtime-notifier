@@ -3,6 +3,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders')
 // database stuff
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const { ChannelType } = require('discord-api-types/v10')
 
 
 module.exports = {
@@ -11,14 +12,21 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('setchannel')
         .setDescription('sets the broadcast channel for the watchlist')
-        .addChannelOption(builder => {
-            builder.setName('channel')
-                // .setRequired(true)
-                .setDescription('the channel to set')
-                .addChannelType(0)
+        .addChannelOption(option => {
+            option.setName('channel')
+            option.setDescription('the channel to set the broadcast channel to')
+            option.addChannelTypes(ChannelType.GuildText)
 
-            return builder
+            return option
         })
+    // .addChannelOption(builder => {
+    //     builder.setName('channel')
+    //         // .setRequired(true)
+    //         .setDescription('the channel to set')
+    //         .addChannelType(0)
+
+    //     return builder
+    // })
     ,
     cooldown: null, // milliseconds
     /**
@@ -26,7 +34,7 @@ module.exports = {
      * @param {CommandInteraction} interaction
      * @param {JsonDB} db
      */
-    execute(bot, interaction, db) {
+    async execute(bot, interaction, db) {
         // @ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             /**
@@ -47,7 +55,7 @@ module.exports = {
             if (!channel) {
                 // remove the channel
                 gData.broadcastChannel = null
-                interaction.reply({
+                await interaction.reply({
                     embeds: [
                         new MessageEmbed()
                             .setTitle('Success')
@@ -58,7 +66,7 @@ module.exports = {
             }
             else {
                 if (!channel.permissionsFor(bot.user).has('SEND_MESSAGES')) {
-                    interaction.reply({
+                    await interaction.reply({
                         embeds: [
                             new MessageEmbed()
                                 .setTitle('Error')
@@ -74,7 +82,7 @@ module.exports = {
             data[interaction.guild.id] = gData
             db.push('/', data)
             if (gData.broadcastChannel) {
-                interaction.reply({
+                await interaction.reply({
                     embeds: [
                         new MessageEmbed()
                             .setTitle(`Success`)
@@ -85,7 +93,7 @@ module.exports = {
             }
         }
         else {
-            interaction.reply({
+            await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setTitle('Error')

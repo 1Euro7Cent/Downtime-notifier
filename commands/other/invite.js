@@ -10,8 +10,8 @@ module.exports = {
      * @param {Client} bot
      * @param {CommandInteraction} interaction
      */
-    execute(bot, interaction) {
-        interaction.reply({
+    async execute(bot, interaction) {
+        await interaction.reply({
             embeds: [
                 new MessageEmbed()
                     .setTitle('Do you like the bot?')

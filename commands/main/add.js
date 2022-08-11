@@ -35,7 +35,7 @@ module.exports = {
                 users: []
             }
             if (gData.users.filter(u => u.id == user.id).length > 0) {
-                interaction.reply({
+                await interaction.reply({
                     embeds: [
                         new MessageEmbed()
                             .setTitle('Error')
@@ -50,7 +50,7 @@ module.exports = {
             let fetched = await bot.users.fetch(user.id).catch(e => null)
             if (!fetched) {
                 console.log('ERROR')
-                interaction.reply({
+                await interaction.reply({
                     embeds: [
                         new MessageEmbed()
                             .setTitle('Error')
@@ -69,7 +69,7 @@ module.exports = {
 
             db.push('/', data)
 
-            interaction.reply({
+            await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setTitle(`Success`)
@@ -79,7 +79,7 @@ module.exports = {
             })
         }
         else {
-            interaction.reply({
+            await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setTitle('Error')

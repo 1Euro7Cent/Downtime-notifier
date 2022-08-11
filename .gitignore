@@ -3,6 +3,7 @@ database.json
 node_modules
 package-lock.json
 logs
+temp
 oldDb.json
 newDb.json
 commands.json
