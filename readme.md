@@ -35,10 +35,11 @@
 
 ## Privacy Policy
 
-- I collect/store data about the guilds and ADDED users.
+- I collect/store data about the guilds(guild ID) and ADDED users.
   With store data I mean I store the ID and when the user turned online/offline.
   You can see the data in the `database.json` file or via the `getData` command.
 - If you want to completly wipe the data from that guild, send me a message in the support server or in dms. I need a proof that you have the rights to do this.
+- If the bot was kicked from the server and on the next boot the bot deletes all data from missing guilds / bots.
 
 ## Additonal information
 

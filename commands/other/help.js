@@ -15,8 +15,13 @@ module.exports = {
      */
     async execute(bot, interaction) {
         let desc = `[Invite me](https://discord.com/api/oauth2/authorize?client_id=${bot.user.id}&permissions=18432&scope=bot%20applications.commands)
-[Github repo](https://github.com/1Euro7Cent/Downtime-notifier)
-Profile picture by [@JBugel#0001](https://github.com/Vibecord)
+Profile picture by [JBugel#0001](https://github.com/Vibecord)
+        
+Having issues or questions? Reach out to me on
+[Github repo / issue](https://github.com/1Euro7Cent/Downtime-notifier)
+[Discord support server](https://discord.gg/ht8bZeF)
+discord dm (mrballou#9055)
+[Reddit dm](https://www.reddit.com/user/1Euro7Cent)
 \n\n`
         let embed = new MessageEmbed()
             .setTitle('Help command')
