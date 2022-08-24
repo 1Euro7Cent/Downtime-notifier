@@ -36,9 +36,21 @@
 ## Privacy Policy
 
 - I collect/store data about the guilds(guild ID) and ADDED users.
-  With store data I mean I store the ID and when the user turned online/offline.
-  You can see the data in the `database.json` file or via the `getData` command.
-- If you want to completly wipe the data from that guild, send me a message in the support server or in dms. I need a proof that you have the rights to do this.
+
+This includes:
+
+- Guild ID (to assign the rest of the data).
+- Broadcast channel ID (to be able to know what channel to send the notification to).
+- Bot data:
+  - user ID (to know for what user to send notification)
+  - timestamps (to be able to know for how long the bot has being online / offline):
+    - gone online (milliseconds)
+    - gone offline (milliseconds)
+
+For the purpose of being able to notify users that bots turned offline / online.
+You can see the data in the `database.json` file or via the `data get` command.
+
+- If you want to completly wipe the data from that guild, use the `data delete` command.
 - If the bot was kicked from the server and on the next boot the bot deletes all data from missing guilds / bots.
 
 ## Additonal information
@@ -50,7 +62,7 @@
 - if you have the V1 version, and you want to migrate the db to v2 (this)
   you can use the following steps:
 
-* - Rename the db to `oldDb.json`
-* - and run `node migrateDb.js`
-* - there should be a new file called `newDb.json`. That is the migrated db.
-* - now rename that to `database.json`
+  - Rename the db to `oldDb.json`
+  - and run `node migrateDb.js`
+  - there should be a new file called `newDb.json`. That is the migrated db.
+  - now rename that to `database.json`

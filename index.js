@@ -195,7 +195,7 @@ bot.on('ready', () => {
                     if (cmd.interval) {
                         if (cmd.timed) {
                             setInterval(async () => {
-                                await cmd.timed(bot, db)
+                                await cmd.timed(bot, db, errorMessager)
                             }, cmd.interval)
                         }
                         else {
