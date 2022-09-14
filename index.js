@@ -25,9 +25,37 @@ let db = new JsonDB(new Config("database", true, true, '/'))
 const config = require('./config.json')
 
 
+if (process.platform === "win32") {
+    let rl = require("readline").createInterface({
+        input: process.stdin
+    })
+
+    rl.on("SIGINT", function () {
+        process.emit("SIGINT")
+    })
+}
+
+process.on("SIGINT", function () {
+    process.exit(-1)
+})
 
 process.on('exit', function (code) {
     console.log(`Process exited with code: ${code}`)
+
+    if (code != 0) {
+        if (!fs.existsSync('./dbBackups')) fs.mkdirSync('./dbBackups')
+        fs.writeFileSync(`./dbBackups/db${Date.now()}.json`, JSON.stringify(db.getData('/')))
+
+        let dircontent = fs.readdirSync('./dbBackups')
+        if (dircontent.length > 10) {
+            // delete the oldest file
+            let oldest = dircontent[0]
+            fs.unlinkSync(`./dbBackups/${oldest}`)
+        }
+    }
+    else {
+        db.save()
+    }
 })
 
 process.on('uncaughtException', err => {
@@ -104,6 +132,7 @@ function loadCommands(path) {
 }
 
 bot.on('ready', () => {
+    console.log(`Logged in as ${bot.user.tag}!`)
 
     commands = loadCommands('./commands')
     console.log(cooldowns)
@@ -209,7 +238,7 @@ bot.on('ready', () => {
             } catch (e) {
                 errorMessager(undefined, e)
             }
-            console.log(`logged in as ${bot.user.tag}`)
+            console.log(`Bot ${bot.user.tag} is ready!`)
 
         } catch (error) {
             console.error(error)

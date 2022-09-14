@@ -9,3 +9,4 @@ newDb.json
 commands.json
 
 .vscode
+/dbBackups
