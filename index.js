@@ -253,7 +253,7 @@ bot.on('ready', () => {
     setInterval(() => {
 
         let statusses = config.statuses
-        if (statusses.length == 0) return
+        if (statusses && statusses.length == 0) return
         let status = statusses[Math.floor(Math.random() * statusses.length)]
         let stats = tools.getStatsFromDB(db.getData("/"))
 
