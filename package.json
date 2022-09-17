@@ -13,11 +13,12 @@
       "commands.json",
       "logs/",
       "temp/",
-      "database.json"
+      "database.json",
+      "dbBackups/"
     ]
   },
   "name": "downtime-notifier",
-  "version": "2.2.1",
+  "version": "2.3.1",
   "main": "index.js",
   "scripts": {
     "clean": "rmdir node_modules /s /q && del package-lock.json /q && rmdir logs /s /q",
