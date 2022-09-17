@@ -278,7 +278,7 @@ bot.on('ready', () => {
             .replace('{avgUptime}', stats.avgUptime)
 
 
-        // bot.user.setActivity(status)
+        bot.user.setActivity(status)
         console.log(`setting status to ${status}`)
 
 
