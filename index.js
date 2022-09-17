@@ -7,11 +7,12 @@ const args = new startup.StartupArgs("-")
 const process = require('process')
 const Cooldown = require('node-cooldown')
 const prettyMs = require('pretty-ms')
+const tools = require('./tools')
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
 
 // make shure all important dirs nad config exist
-if (!fs.existsSync('./config.json')) fs.writeFileSync('./config.json', JSON.stringify({ token: 'get your token at https://discord.com/developers/applications', "logs": { crash: "crash{date}.log" }, }, null, 2))
+if (!fs.existsSync('./config.json')) fs.writeFileSync('./config.json', JSON.stringify({ token: 'get your token at https://discord.com/developers/applications', "logs": { crash: "crash{y}.{m}.{d}-{h}_{i}.{s}.log" }, }, null, 2))
 if (!fs.existsSync('./logs')) fs.mkdirSync('./logs')
 if (!fs.existsSync('./temp')) fs.mkdirSync('./temp')
 
@@ -251,8 +252,37 @@ bot.on('ready', () => {
     // bot.user.setActivity('Now with slash commands')
     setInterval(() => {
 
-        bot.user.setActivity('If im not working ping me for info')
-    }, 2 * 60 * 1000) // every 2 minutes
+        let statusses = config.statuses
+        if (statusses.length == 0) return
+        let status = statusses[Math.floor(Math.random() * statusses.length)]
+        let stats = tools.getStatsFromDB(db.getData("/"))
+
+        stats.avgDowntime = Math.round(stats.avgDowntime)
+        stats.avgUptime = Math.round(stats.avgUptime)
+
+        let downPow = 1
+        let upPow = 1
+
+        if (stats.avgDowntime >= Math.pow(10, 6)) downPow = 6
+
+        if (stats.avgUptime >= Math.pow(10, 6)) upPow = 6
+
+        console.log(stats)
+        // replace all variables
+        status = status.replace('{guilds}', bot.guilds.cache.size)
+            .replace('{manageGuilds}', stats.managingGuilds)
+            .replace('{manageUsers}', stats.managingUsers)
+            .replace('{avgDowntimePRETTY}', prettyMs(tools.roundToNearest(stats.avgDowntime, downPow)))
+            .replace('{avgDowntime}', stats.avgDowntime)
+            .replace('{avgUptimePRETTY}', prettyMs(tools.roundToNearest(stats.avgUptime, upPow)))
+            .replace('{avgUptime}', stats.avgUptime)
+
+
+        // bot.user.setActivity(status)
+        console.log(`setting status to ${status}`)
+
+
+    }, 0.1 * 60 * 1000) // every 10 seconds 
 })
 bot.on('interactionCreate', async interaction => {
     // console.log('interaction', interaction)

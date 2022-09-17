@@ -1,3 +1,5 @@
+const { Permissions, TextChannel, GuildMember } = require('discord.js')
+
 /**
  * Generate a random int between min and max
  * @param {Number} min 
@@ -6,9 +8,9 @@
  */
 
 function random(min, max) {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    min = Math.ceil(min)
+    max = Math.floor(max)
+    return Math.floor(Math.random() * (max - min + 1)) + min
 }
 /**
  * get the percentage of x to y
@@ -83,11 +85,74 @@ function removeElemByName(arr, name) {
     return arr.filter((elem, i) => i != index)
 }
 
+/**
+ * @param {TextChannel | null} channel
+ * @param {GuildMember | null | undefined} member
+ */
+function hasPermissionToSendMessages(channel, member = channel?.guild?.me) {
+    if (!channel) return false
+    // @ts-ignore
+    let permissions = channel.permissionsFor(member)
+    return !(permissions && (!permissions.has(Permissions.FLAGS.SEND_MESSAGES) || !permissions.has(Permissions.FLAGS.VIEW_CHANNEL)))
+}
+
+/**
+ * @param {{"":{ broadcastChannel: string, users:{ id: string, wentOnline: number, wentOffline: number }[] }}} dbData
+ */
+function getStatsFromDB(dbData) {
+    let res = {
+        managingGuilds: 0,
+        managingUsers: 0,
+        avgUptime: 0,
+        avgDowntime: 0
+    }
+
+    for (let guildId in dbData) {
+        if (guildId == '') continue
+        res.managingGuilds++
+        let guild = dbData[guildId]
+        for (let user of guild.users) {
+            res.managingUsers++
+            if (typeof user.wentOnline == 'number' && typeof user.wentOffline == 'number') {
+                // when wentOnline is bigger than wentOffline, the user is online
+                if (user.wentOnline > user.wentOffline) {
+                    res.avgUptime += Date.now() - user.wentOnline
+                    res.avgDowntime += user.wentOnline - user.wentOffline
+                }
+                else {
+                    res.avgUptime += user.wentOffline - user.wentOnline
+                    res.avgDowntime += Date.now() - user.wentOffline
+                }
+
+            }
+        }
+    }
+
+    if (res.managingUsers > 0) {
+        if (res.avgUptime > 0) res.avgUptime /= res.managingUsers
+        if (res.avgDowntime > 0) res.avgDowntime /= res.managingUsers
+    }
+
+    return res
+}
+
+/**
+ * @param {number} num
+ * @param {number} nearest pow of 10
+ */
+function roundToNearest(num, nearest) {
+    nearest = Math.pow(10, nearest)
+    return Math.round(num / nearest) * nearest
+}
+
 module.exports = {
     random,
     getPercentage,
     isHex,
     markWord,
     isInRange,
-    removeElemByName
+    removeElemByName,
+    hasPermissionToSendMessages,
+    getStatsFromDB,
+    roundToNearest
 }

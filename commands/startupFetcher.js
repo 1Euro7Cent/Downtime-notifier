@@ -35,7 +35,7 @@ module.exports = {
             for (let user of guildData.users) {
                 // missing.push(user)
                 // continue
-                process.stdout.write(`fetching user ${user.id}... `)
+                process.stdout.write(`  fetching user ${user.id}... `)
 
                 let fetched = await bot.users.fetch(user.id).catch(e => null)
                 if (!fetched) {
@@ -73,7 +73,7 @@ module.exports = {
                             .setDescription(desc)
                             .setColor(0x00ff00)
 
-                        await channel.send({ embeds: [embed] })
+                        await channel.send({ embeds: [embed] }).catch(e => errorMessager(channel, e))
 
                     }
                 }

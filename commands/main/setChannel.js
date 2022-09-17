@@ -5,6 +5,8 @@ const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
 const { ChannelType } = require('discord-api-types/v10')
 
+const tools = require('../../tools')
+
 
 module.exports = {
     disabled: false,
@@ -65,7 +67,9 @@ module.exports = {
                 })
             }
             else {
-                if (!channel.permissionsFor(bot.user).has('SEND_MESSAGES')) {
+                // permiossion check
+
+                if (!tools.hasPermissionToSendMessages(channel)) {
                     await interaction.reply({
                         embeds: [
                             new MessageEmbed()

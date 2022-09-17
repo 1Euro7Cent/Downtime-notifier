@@ -17,7 +17,16 @@
   "token": "get your token at https://discord.com/developers/applications",
   "logs": {
     "crash": "crash{y}.{m}.{d}-{h}_{i}.{s}.log"
-  }
+  },
+  "statuses": [
+    "If i am not working, ping me for info",
+    "{guilds} servers | /help",
+    "Managing {manageGuilds} servers | /help",
+    "Listening to {manageUsers} bots | /help",
+    "Average downtime: {avgDowntimePRETTY} | /help",
+    "Average uptime: {avgUptimePRETTY} | /help",
+    "Made by mrballou#9055 and contributors | /help"
+  ]
 }
 ```
 

@@ -1,8 +1,9 @@
-const { Client, CommandInteraction, MessageEmbed } = require('discord.js')
+const { Client, CommandInteraction, MessageEmbed, Permissions } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
 // database stuff
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const tools = require('../../tools')
 
 module.exports = {
     disabled: false,
@@ -29,7 +30,14 @@ module.exports = {
         // broadcast channel
         let broadcastChannel = await interaction.guild.channels.cache.get(guildData.broadcastChannel)
         if (broadcastChannel) {
-            desc += `Broadcast channel: \`${broadcastChannel.name} (${guildData.broadcastChannel})\`\n\n`
+
+
+            // @ts-ignore
+            let sendPermissions = tools.hasPermissionToSendMessages(broadcastChannel)
+
+            desc += `Broadcast channel: \`${broadcastChannel.name} (${guildData.broadcastChannel})\`\n`
+
+            desc += `Send permissions: ${sendPermissions ? "✅" : "❌"}\n\n`
         } else {
             desc += `Broadcast channel: \`${guildData.broadcastChannel} (not found in guild)\`\n\n`
         }
