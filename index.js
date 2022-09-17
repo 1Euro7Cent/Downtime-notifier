@@ -267,7 +267,7 @@ bot.on('ready', () => {
 
         if (stats.avgUptime >= Math.pow(10, 6)) upPow = 6
 
-        console.log(stats)
+        // console.log(stats)
         // replace all variables
         status = status.replace('{guilds}', bot.guilds.cache.size)
             .replace('{manageGuilds}', stats.managingGuilds)
@@ -282,7 +282,7 @@ bot.on('ready', () => {
         console.log(`setting status to ${status}`)
 
 
-    }, 0.1 * 60 * 1000) // every 10 seconds 
+    }, 2 * 60 * 1000) // every 2 minutes 
 })
 bot.on('interactionCreate', async interaction => {
     // console.log('interaction', interaction)
