@@ -21,8 +21,8 @@
   "version": "2.3.2",
   "main": "index.js",
   "scripts": {
-    "clean": "rmdir node_modules /s /q && del package-lock.json /q && rmdir logs /s /q",
-    "dev": "npm i && nodemon index.js"
+    "clean": "rmdir node_modules /s /q && rmdir logs /s /q",
+    "dev": "nodemon index.js -dev"
   },
   "keywords": [],
   "author": "1euro7cent",

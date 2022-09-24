@@ -31,12 +31,13 @@ module.exports = {
             let data = db.getData('/')
 
             /**
-             * @type {{broadcastChannel: string | null, users: GuildMember[]}}
+             * @type {{broadcastChannel: string | null, users: {id:string,wentOffline:number,wentOnline:number}[]}}
              */
             let gData = data[interaction.guild.id]
             if (!gData) gData = {
                 broadcastChannel: null,
-                users: []
+                users: [],
+                notifications: {}
             }
             if (gData.users.filter(u => u.id == user.id).length > 0) {
                 await interaction.reply({

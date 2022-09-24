@@ -50,7 +50,8 @@ module.exports = {
             let gData = data[interaction.guild.id]
             if (!gData) gData = {
                 broadcastChannel: null,
-                users: []
+                users: [],
+                notifications: {}
             }
             // check if we have permission to send messages in the channel
 

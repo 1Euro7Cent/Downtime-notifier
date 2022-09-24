@@ -1,5 +1,6 @@
 const { Client, CommandInteraction, MessageEmbed, Permissions } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
+const fs = require('fs')
 // database stuff
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
@@ -53,13 +54,52 @@ module.exports = {
             }
         }
 
-        await interaction.editReply({
-            embeds: [
-                new MessageEmbed()
-                    .setTitle('Watchlist')
-                    .setDescription(desc)
-                    .setColor(0x00ff00)
-            ]
-        })
+        // notifications
+
+        desc += '\nNotifications:\n'
+        let notifications = guildData.notifications
+        for (let n in notifications) {
+            let notify = n
+            let notifyingUser = await interaction.guild.members.cache.get(notify)
+
+            if (notifyingUser) desc += `\n${notifyingUser.user} will be notified when:\n`
+            else desc += `\n\`${notify}\` will be notified when:\n`
+
+            let notifyUsers = notifications[notify]
+            for (let nu of notifyUsers) {
+                if (nu == 'all')
+                    desc += `   - \`any user\` goes offline/ online\n`
+                else {
+                    let notifyUser = await interaction.guild.members.cache.get(nu)
+                    if (notifyUser) desc += `   - ${notifyUser} goes offline / offline\n`
+                    else desc += `  - \`${nu}\` goes offline/ offline\n`
+                }
+            }
+        }
+
+
+        if (desc.length > 2000) {
+            // create a file and send it
+            fs.writeFileSync(`./temp/${interaction.guild.id}.txt`, message)
+            await interaction.reply({
+                files: [
+                    `./temp/${interaction.guild.id}.txt`
+                ]
+            })
+            fs.unlinkSync(`./temp/${interaction.guild.id}.txt`)
+
+
+        }
+        else {
+            await interaction.editReply({
+                embeds: [
+                    new MessageEmbed()
+                        .setTitle('Watchlist')
+                        .setDescription(desc)
+                        .setColor(0x00ff00)
+                ]
+            })
+        }
+
     }
 }

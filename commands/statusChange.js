@@ -1,4 +1,4 @@
-const { Client, CommandInteraction, MessageEmbed, TextChannel } = require('discord.js')
+const { Client, CommandInteraction, MessageEmbed, TextChannel, User } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
@@ -36,6 +36,37 @@ function getMessage(bot, user, tUser, type) {
 
 }
 
+/**
+ * @param {{ embeds: MessageEmbed[] }} mesData
+ * @param {User} user
+ * @param {*} notifications
+ * @returns {{ embeds: MessageEmbed[], content: string } | { embeds: MessageEmbed[] }}
+ */
+function insertPings(mesData, user, notifications) {
+	let users = []
+
+	for (let toNotify in notifications) {
+		for (let u of notifications[toNotify]) {
+			if (u == 'all') {
+				users.push(toNotify)
+				continue
+			}
+			if (u == user.id) {
+				users.push(toNotify)
+			}
+		}
+	}
+
+	// console.log(users)
+	if (users.length == 0) return mesData
+
+	return {
+		embeds: mesData.embeds,
+		content: users.length > 0 ? users.map(u => `<@${u}>`).join(' ') : ''
+	}
+
+}
+
 module.exports = {
 	disabled: false,
 	noCommand: true,
@@ -58,6 +89,7 @@ module.exports = {
 						// if the user gone online
 						if (oldPresence.status == 'offline' && newPresence.status != 'offline') {
 							let mes = getMessage(bot, newPresence.user, gData.users[user], 'online')
+							mes = insertPings(mes, newPresence.user, gData.notifications)
 							console.log(`${newPresence.user.username} went online`)
 							/**
 							 * @type {TextChannel}
@@ -81,6 +113,8 @@ module.exports = {
 						// if the user went offline
 						if (oldPresence.status != 'offline' && newPresence.status == 'offline') {
 							let mes = getMessage(bot, newPresence.user, gData.users[user], 'offline')
+							mes = insertPings(mes, newPresence.user, gData.notifications)
+
 							console.log(`${newPresence.user.username} went offline`)
 							/**
 							 * @type {TextChannel}
