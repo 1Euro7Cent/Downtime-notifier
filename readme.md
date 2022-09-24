@@ -50,6 +50,9 @@ This includes:
 
 - Guild ID (to assign the rest of the data).
 - Broadcast channel ID (to be able to know what channel to send the notification to).
+- Notifications
+  - user ID to notify
+    - user ID to send notification about
 - Bot data:
   - user ID (to know for what user to send notification)
   - timestamps (to be able to know for how long the bot has being online / offline):

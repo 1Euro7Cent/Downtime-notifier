@@ -16,8 +16,8 @@ module.exports = {
         .setDescription('sets the broadcast channel for the watchlist')
         .addChannelOption(option => {
             option.setName('channel')
-            option.setDescription('the channel to set the broadcast channel to')
-            option.addChannelTypes(ChannelType.GuildText)
+                .setDescription('the channel to set the broadcast channel to')
+                .addChannelTypes(ChannelType.GuildText, ChannelType.GuildNews)
 
             return option
         })
