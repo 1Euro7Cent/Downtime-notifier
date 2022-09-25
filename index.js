@@ -355,8 +355,10 @@ bot.on('messageCreate', message => {
 /**
  * @param {CommandInteraction | null | undefined | GuildTextBasedChannel} interaction
  * @param {Error} e
+ * @returns {boolean} true if the error can be ignored
  */
 function errorMessager(interaction, e) {
+    if (e.name == 'AbortError') return true
     console.error(e)
     if (interaction instanceof CommandInteraction) {
         interaction.reply(getErrMes(e)).catch(err => {
@@ -378,6 +380,8 @@ function errorMessager(interaction, e) {
             })
         }
     }
+
+    return false
 
 }
 

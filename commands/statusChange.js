@@ -68,14 +68,18 @@ module.exports = {
 
 
 							gData.users[user].wentOnline = Date.now()
-							if (channel) {
+							if (channel && tools.hasPermissionToSendMessages(channel)) {
 								await channel.send(mes).catch((e) => {
+									if (errorMessager(channel, e)) return
 									// remove from db
-									errorMessager(channel, e)
 									gData.users.splice(user, 1)
 									console.log(`Removed ${newPresence.user.username} from the database`)
 
 								})
+							}
+							else {
+								gData.broadcastChannel = null
+								console.log(`Removed broadcast channel of ${newPresence.user.username}`)
 							}
 						}
 						// if the user went offline
@@ -90,7 +94,7 @@ module.exports = {
 							let channel = await bot.channels.cache.get(gData.broadcastChannel)
 
 							gData.users[user].wentOffline = Date.now()
-							if (channel) {
+							if (channel && tools.hasPermissionToSendMessages(channel)) {
 								await channel.send(mes).catch((e) => {
 									errorMessager(channel, e)
 									// remove from db
@@ -98,6 +102,10 @@ module.exports = {
 									gData.users.splice(user, 1)
 									console.log(`Removed ${newPresence.user.username} from the database`)
 								})
+							}
+							else {
+								gData.broadcastChannel = null
+								console.log(`Removed broadcast channel of ${newPresence.user.username}`)
 							}
 
 						}
