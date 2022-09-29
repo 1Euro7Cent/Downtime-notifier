@@ -165,7 +165,7 @@ bot.on('ready', () => {
 
     (async () => {
         try {
-            if (tools.objLength(db.getData('/')) >= 10) {
+            if (tools.objLength(db.getData('/')) >= 20) {
                 console.log('setting status to notify that the bot is starting up')
 
                 bot.user?.setPresence({

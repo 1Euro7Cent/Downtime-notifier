@@ -7,11 +7,11 @@ const tools = require('../../tools')
 module.exports = {
     disabled: false,
     data: new SlashCommandBuilder()
-        .setName('notify')
-        .setDescription('Whether to notify you when a bot is going offline / online')
+        .setName('pings')
+        .setDescription('Whether to ping you when a bot is going offline / online')
         .addStringOption(builder => {
             return builder.setName('state')
-                .setDescription('Whether to add or remove the user from the notify list')
+                .setDescription('Whether to add or remove the user from the ping list')
                 .setRequired(true)
                 .addChoices(
                     {
@@ -26,7 +26,7 @@ module.exports = {
         .addStringOption(builder => {
 
             builder.setAutocomplete(true)
-                .setDescription("The user to notify you about going offline / online")
+                .setDescription("The user to ping you about going offline / online")
                 .setName("user")
                 .setRequired(true)
 
@@ -86,7 +86,10 @@ module.exports = {
             let respondData = possibleValues.map(choice => ({ name: choice.tag + (removableUsers.includes(choice) ? ' (Removeable)' : ''), value: choice.id }))
 
             if (respondData.length > 0) {
-                respondData.unshift({ name: 'All', value: 'all' })
+                if (gData.notifications[interaction.user.id] && gData.notifications[interaction.user.id].includes('all'))
+                    respondData.unshift({ name: 'All (Removeable)', value: 'all' })
+                else
+                    respondData.unshift({ name: 'All', value: 'all' })
             }
 
             await interaction.respond(respondData)
@@ -106,7 +109,8 @@ module.exports = {
         // @ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             let data = db.getData('/')
-            let gData = data[interaction.guild.id]
+            // @ts-ignore
+            let gData = data[interaction.guild?.id]
 
             if (!gData) {
                 gData = {
@@ -136,7 +140,7 @@ module.exports = {
                                 embeds: [
                                     new MessageEmbed()
                                         .setTitle('Error')
-                                        .setDescription('You are already being notified about all users')
+                                        .setDescription('You are already being pinged about all users')
                                         .setColor(0xff0000)
 
                                 ]
@@ -150,7 +154,7 @@ module.exports = {
                                     embeds: [
                                         new MessageEmbed()
                                             .setTitle('Error')
-                                            .setDescription('You are already being notified about this user')
+                                            .setDescription('You are already being pinged about this user')
                                             .setColor(0xff0000)
 
                                     ]
@@ -169,7 +173,7 @@ module.exports = {
                         embeds: [
                             new MessageEmbed()
                                 .setTitle('Success')
-                                .setDescription(`You will now be notified when ${user == 'all' ? '\`anyone in the list\`' : `<@${user}>`} goes offline / online`)
+                                .setDescription(`You will now be pinged when ${user == 'all' ? '\`anyone in the list\`' : `<@${user}>`} goes offline / online`)
                                 .setColor(0x00ff00)
                         ]
                     })
@@ -183,7 +187,7 @@ module.exports = {
                             embeds: [
                                 new MessageEmbed()
                                     .setTitle('Success')
-                                    .setDescription(`You will no longer be notified when anyone goes offline / online`)
+                                    .setDescription(`You will no longer be pinged when anyone goes offline / online`)
                                     .setColor(0x00ff00)
                             ]
                         })
@@ -194,11 +198,12 @@ module.exports = {
                         }
 
                         if (userNotifications.includes('all')) {
+                            // todo: remove all and add all(individual) users except the one being removed
                             await interaction.reply({
                                 embeds: [
                                     new MessageEmbed()
                                         .setTitle('Error')
-                                        .setDescription('You are already being notified about all users. remove all and then add specific users')
+                                        .setDescription('You are already being pinged about all users. remove all and then add specific users')
                                         .setColor(0xff0000)
 
                                 ]
@@ -214,7 +219,7 @@ module.exports = {
                                     embeds: [
                                         new MessageEmbed()
                                             .setTitle('Error')
-                                            .setDescription('That user is not in your notification list')
+                                            .setDescription('That user is not in your ping list')
                                             .setColor(0xff0000)
 
                                     ]
@@ -226,7 +231,7 @@ module.exports = {
                                 embeds: [
                                     new MessageEmbed()
                                         .setTitle('Success')
-                                        .setDescription(`You will no longer be notified when <@${user}> goes offline / online`)
+                                        .setDescription(`You will no longer be pinged when <@${user}> goes offline / online`)
                                         .setColor(0x00ff00)
                                 ]
                             })

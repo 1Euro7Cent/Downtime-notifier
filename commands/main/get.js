@@ -56,14 +56,14 @@ module.exports = {
 
         // notifications
 
-        desc += '\nNotifications:\n'
+        desc += '\nPings:\n'
         let notifications = guildData.notifications
         for (let n in notifications) {
             let notify = n
             let notifyingUser = await interaction.guild.members.cache.get(notify)
 
-            if (notifyingUser) desc += `\n${notifyingUser.user} will be notified when:\n`
-            else desc += `\n\`${notify}\` will be notified when:\n`
+            if (notifyingUser) desc += `\n${notifyingUser.user} will be pinged when:\n`
+            else desc += `\n\`${notify}\` will be pinged when:\n`
 
             let notifyUsers = notifications[notify]
             for (let nu of notifyUsers) {
