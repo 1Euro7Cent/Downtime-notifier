@@ -11,7 +11,7 @@ module.exports = {
     noCommand: false,
     data: new SlashCommandBuilder()
         .setName('get')
-        .setDescription('Lists all the bots that are in the watchlist')
+        .setDescription('Lists all the bots and mentions that are in the database.')
     ,
     cooldown: 5000, // 5 seconds
     /**
@@ -22,14 +22,15 @@ module.exports = {
     async execute(bot, interaction, db) {
         // let db = new JsonDB(new Config("database", true, true, '/'))
         let data = db.getData('/')
-        let guildData = data[interaction.guild.id]
+        // @ts-ignore
+        let guildData = data[interaction.guild?.id]
         if (!guildData) return interaction.reply('No data found for this guild')
         await interaction.deferReply()
 
         let desc = ''
 
         // broadcast channel
-        let broadcastChannel = await interaction.guild.channels.cache.get(guildData.broadcastChannel)
+        let broadcastChannel = await interaction.guild?.channels.cache.get(guildData.broadcastChannel)
         if (broadcastChannel) {
 
 
@@ -46,7 +47,7 @@ module.exports = {
         // users
         let users = guildData.users
         for (let u in users) {
-            let user = await interaction.guild.members.cache.get(users[u].id)
+            let user = await interaction.guild?.members.cache.get(users[u].id)
             if (user) {
                 desc += `${user.user}: \`${user.presence?.status ? user.presence?.status : 'Unknown'}\`\n`
             } else {
@@ -56,21 +57,21 @@ module.exports = {
 
         // notifications
 
-        desc += '\nPings:\n'
+        desc += '\nmentions:\n'
         let notifications = guildData.notifications
         for (let n in notifications) {
             let notify = n
-            let notifyingUser = await interaction.guild.members.cache.get(notify)
+            let notifyingUser = await interaction.guild?.members.cache.get(notify)
 
-            if (notifyingUser) desc += `\n${notifyingUser.user} will be pinged when:\n`
-            else desc += `\n\`${notify}\` will be pinged when:\n`
+            if (notifyingUser) desc += `\n${notifyingUser.user} will be mentioned when:\n`
+            else desc += `\n\`${notify}\` will be mentioned when:\n`
 
             let notifyUsers = notifications[notify]
             for (let nu of notifyUsers) {
                 if (nu == 'all')
                     desc += `   - \`any user\` goes offline/ online\n`
                 else {
-                    let notifyUser = await interaction.guild.members.cache.get(nu)
+                    let notifyUser = await interaction.guild?.members.cache.get(nu)
                     if (notifyUser) desc += `   - ${notifyUser} goes offline / offline\n`
                     else desc += `  - \`${nu}\` goes offline/ offline\n`
                 }
@@ -80,13 +81,13 @@ module.exports = {
 
         if (desc.length > 2000) {
             // create a file and send it
-            fs.writeFileSync(`./temp/${interaction.guild.id}.txt`, message)
+            fs.writeFileSync(`./temp/${interaction.guild?.id}.txt`, desc)
             await interaction.reply({
                 files: [
-                    `./temp/${interaction.guild.id}.txt`
+                    `./temp/${interaction.guild?.id}.txt`
                 ]
             })
-            fs.unlinkSync(`./temp/${interaction.guild.id}.txt`)
+            fs.unlinkSync(`./temp/${interaction.guild?.id}.txt`)
 
 
         }

@@ -8,7 +8,7 @@ module.exports = {
     disabled: false,
     data: new SlashCommandBuilder()
         .setName('remove')
-        .setDescription('removes a bot from the watchlist')
+        .setDescription('Removes a bot from the watchlist.')
         .addUserOption(builder => {
             builder.setName('user')
                 .setRequired(true)

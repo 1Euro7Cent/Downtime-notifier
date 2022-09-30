@@ -13,7 +13,7 @@ module.exports = {
     noCommand: false,
     data: new SlashCommandBuilder()
         .setName('setchannel')
-        .setDescription('sets the broadcast channel for the watchlist')
+        .setDescription('Sets the broadcast channel for the watchlist.')
         .addChannelOption(option => {
             option.setName('channel')
                 .setDescription('the channel to set the broadcast channel to')

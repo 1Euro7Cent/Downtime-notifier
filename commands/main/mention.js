@@ -7,11 +7,11 @@ const tools = require('../../tools')
 module.exports = {
     disabled: false,
     data: new SlashCommandBuilder()
-        .setName('pings')
-        .setDescription('Whether to ping you when a bot is going offline / online')
+        .setName('mention')
+        .setDescription('Whether to mention you when a bot is going offline / online.')
         .addStringOption(builder => {
             return builder.setName('state')
-                .setDescription('Whether to add or remove the user from the ping list')
+                .setDescription('Whether to add or remove the user from the mention list')
                 .setRequired(true)
                 .addChoices(
                     {
@@ -26,7 +26,7 @@ module.exports = {
         .addStringOption(builder => {
 
             builder.setAutocomplete(true)
-                .setDescription("The user to ping you about going offline / online")
+                .setDescription("The user to mention you about going offline / online")
                 .setName("user")
                 .setRequired(true)
 
@@ -140,7 +140,7 @@ module.exports = {
                                 embeds: [
                                     new MessageEmbed()
                                         .setTitle('Error')
-                                        .setDescription('You are already being pinged about all users')
+                                        .setDescription('You are already being mentioned about all users')
                                         .setColor(0xff0000)
 
                                 ]
@@ -154,7 +154,7 @@ module.exports = {
                                     embeds: [
                                         new MessageEmbed()
                                             .setTitle('Error')
-                                            .setDescription('You are already being pinged about this user')
+                                            .setDescription('You are already being mentioned about this user')
                                             .setColor(0xff0000)
 
                                     ]
@@ -173,7 +173,7 @@ module.exports = {
                         embeds: [
                             new MessageEmbed()
                                 .setTitle('Success')
-                                .setDescription(`You will now be pinged when ${user == 'all' ? '\`anyone in the list\`' : `<@${user}>`} goes offline / online`)
+                                .setDescription(`You will now be mentioned when ${user == 'all' ? '\`anyone in the list\`' : `<@${user}>`} goes offline / online`)
                                 .setColor(0x00ff00)
                         ]
                     })
@@ -187,7 +187,7 @@ module.exports = {
                             embeds: [
                                 new MessageEmbed()
                                     .setTitle('Success')
-                                    .setDescription(`You will no longer be pinged when anyone goes offline / online`)
+                                    .setDescription(`You will no longer be mentioned when anyone goes offline / online`)
                                     .setColor(0x00ff00)
                             ]
                         })
@@ -203,7 +203,7 @@ module.exports = {
                                 embeds: [
                                     new MessageEmbed()
                                         .setTitle('Error')
-                                        .setDescription('You are already being pinged about all users. remove all and then add specific users')
+                                        .setDescription('You are already being mentioned about all users. remove all and then add specific users')
                                         .setColor(0xff0000)
 
                                 ]
@@ -219,7 +219,7 @@ module.exports = {
                                     embeds: [
                                         new MessageEmbed()
                                             .setTitle('Error')
-                                            .setDescription('That user is not in your ping list')
+                                            .setDescription('That user is not in your mention list')
                                             .setColor(0xff0000)
 
                                     ]
@@ -231,7 +231,7 @@ module.exports = {
                                 embeds: [
                                     new MessageEmbed()
                                         .setTitle('Success')
-                                        .setDescription(`You will no longer be pinged when <@${user}> goes offline / online`)
+                                        .setDescription(`You will no longer be mentioned when <@${user}> goes offline / online`)
                                         .setColor(0x00ff00)
                                 ]
                             })

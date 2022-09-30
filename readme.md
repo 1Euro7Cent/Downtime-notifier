@@ -67,9 +67,13 @@ You can see the data in the `database.json` file or via the `data get` command.
 
 ## Additional information
 
-- public bot [invite link](https://discord.com/api/oauth2/authorize?client_id=818105614055112715&permissions=18432&scope=bot%20applications.commands)
+- public bots:
+  - [Public stable](https://discord.com/api/oauth2/authorize?client_id=818105614055112715&permissions=18432&scope=bot%20applications.commands)
+  - [Public beta](https://discord.com/api/oauth2/authorize?client_id=1023289137614303282&permissions=18432&scope=bot%20applications.commands)
 
-- profile picture by [JBugel#0001](https://github.com/Vibecord)
+- I do not make support on forks of this bot. Go to the repo bound to the bot you are using.
+
+- Profile picture by [JBugel#0001](https://github.com/Vibecord)
 
 - if you have the V1 version, and you want to migrate the db to v2 (this)
   you can use the following steps:

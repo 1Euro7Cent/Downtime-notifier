@@ -11,7 +11,7 @@ let data = {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
-        .setDescription('The help command')
+        .setDescription('The help command.')
     ,
     /**
      * @param {Client} bot
