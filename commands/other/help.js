@@ -4,10 +4,14 @@ const fs = require('fs')
 
 let commands = []
 
+let data = {
+    botVersion: "-0.0.0 failed to load"
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
-        .setDescription('The help command')
+        .setDescription('The help command.')
     ,
     /**
      * @param {Client} bot
@@ -22,6 +26,8 @@ Having issues or questions? Reach out to me on
 [Discord support server](https://discord.gg/ht8bZeF)
 discord dm (mrballou#9055)
 [Reddit dm](https://www.reddit.com/user/1Euro7Cent)
+
+Bot version: \`${data.botVersion}\`
 \n\n`
         let embed = new MessageEmbed()
             .setTitle('Help command')
@@ -39,7 +45,11 @@ discord dm (mrballou#9055)
     * this runs on startup
     * @param {Client} bot
     */
-    // @ts-ignore
-    startup(bot) { commands = JSON.parse(fs.readFileSync('./commands.json')) }
+    startup(bot) {
+        commands = JSON.parse(fs.readFileSync('./commands.json', 'utf8'))
+
+        let package = JSON.parse(fs.readFileSync('./package.json', 'utf8'))
+        data.botVersion = package.version
+    }
 
 }

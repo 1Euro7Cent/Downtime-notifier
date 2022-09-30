@@ -145,6 +145,19 @@ function roundToNearest(num, nearest) {
     return Math.round(num / nearest) * nearest
 }
 
+/**
+ * this asyncronously waits for the given time
+ * @param {number} ms 
+ * @returns 
+ */
+async function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function objLength(obj) {
+    return Object.keys(obj).length
+}
+
 module.exports = {
     random,
     getPercentage,
@@ -154,5 +167,7 @@ module.exports = {
     removeElemByName,
     hasPermissionToSendMessages,
     getStatsFromDB,
-    roundToNearest
+    roundToNearest,
+    sleep,
+    objLength
 }

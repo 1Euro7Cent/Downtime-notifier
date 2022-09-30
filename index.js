@@ -1,5 +1,5 @@
 const fs = require('fs')
-const { Client, Intents, MessageEmbed, CommandInteraction, GuildChannel, GuildTextBasedChannel } = require('discord.js')
+const { Client, Intents, MessageEmbed, CommandInteraction, GuildChannel, AutocompleteInteraction } = require('discord.js')
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 const startup = require("startup-args")
@@ -21,9 +21,11 @@ fs.readdirSync('./temp').forEach(file => {
     fs.unlinkSync(`./temp/${file}`)
 })
 
-let db = new JsonDB(new Config("database", true, true, '/'))
+let db = new JsonDB(new Config("database", true, args.get("dev"), '/'))
 
 const config = require('./config.json')
+
+let ready = false
 
 
 if (process.platform === "win32") {
@@ -135,6 +137,8 @@ function loadCommands(path) {
 bot.on('ready', () => {
     console.log(`Logged in as ${bot.user.tag}!`)
 
+
+
     commands = loadCommands('./commands')
     console.log(cooldowns)
     // console.log(commands)
@@ -161,6 +165,17 @@ bot.on('ready', () => {
 
     (async () => {
         try {
+            if (tools.objLength(db.getData('/')) >= 20) {
+                console.log('setting status to notify that the bot is starting up')
+
+                bot.user?.setPresence({
+                    activities: [{
+                        name: "Starting up...",
+                        type: "PLAYING"
+                    }]
+                })
+                bot.user?.setStatus('dnd')
+            }
             if (args.get('reload')) {
                 var arg = args.get('reload')
                 // console.log(arg)
@@ -239,7 +254,17 @@ bot.on('ready', () => {
             } catch (e) {
                 errorMessager(undefined, e)
             }
+
+            // await tools.sleep(10000)
             console.log(`Bot ${bot.user.tag} is ready!`)
+            ready = true
+            bot.user?.setStatus('online')
+            bot.user?.setPresence({
+                activities: [{
+                    name: "Running",
+                    type: "PLAYING"
+                }]
+            })
 
         } catch (error) {
             console.error(error)
@@ -251,6 +276,8 @@ bot.on('ready', () => {
     // set bot status
     // bot.user.setActivity('Now with slash commands')
     setInterval(() => {
+
+        if (!ready) return
 
         let statusses = config.statuses
         if (statusses && statusses.length == 0) return
@@ -286,54 +313,85 @@ bot.on('ready', () => {
 })
 bot.on('interactionCreate', async interaction => {
     // console.log('interaction', interaction)
-    if (!interaction.isCommand()) return
-    // console.log('after isCommand')
-    try {
-        if (!commands) {
-            await interaction.reply('I am not ready yet, please try again later')
-            return
-        }
-        // console.log('all commands', commands)
-        for (let cmd of commands) {
-            if (cmd?.data?.name == interaction.commandName) {
-                //@ts-ignore
-                console.log(`a new command ${cmd.data.name} was called by ${interaction.user?.tag} in guild ${interaction.guild?.name} in channel ${interaction.channel?.name} `)
-                // get all args
-                //@ts-ignore
-                var args = interaction.options._hoistedOptions
-                for (let arg in args) {
-                    console.log(`${args[arg].name}: ${args[arg].value}`)
-                }
-                // console.log('command OUTPUT:')
-                let cd = cooldowns[interaction.commandName]
-                let rateLimitData
-                if (cd) {
-                    rateLimitData = cd.check(interaction.user.id)
-                    if (rateLimitData.pass) {
-                        // cooldown passed
-                        await cmd.execute(bot, interaction, db)
+
+    if (interaction.isAutocomplete()) {
+        try {
+            if (!commands || !ready) {
+                await interaction.respond([{
+                    name: 'I am not ready yet, please try again later',
+                    value: 'e.notReady'
+                }])
+                return
+            }
+            for (let cmd of commands) {
+                if (cmd?.data?.name == interaction.commandName) {
+                    console.log('autocomplete for', interaction.commandName)
+                    if (cmd.autocomplete) {
+                        await cmd.autocomplete(bot, interaction, db, errorMessager)
                     }
                     else {
-                        // blocked by cooldown
-                        await interaction.reply({
-                            embeds: [
-                                new MessageEmbed()
-                                    .setTitle('RateLimit hit')
-                                    .setDescription(`Wait wait wait. you are doing stuff too fast. Please wait another \`${prettyMs(rateLimitData.restTime, { verbose: true })}\` until you can use this command again.`)
-                                    .setColor(0xFF0000)
-                            ]
-                        })
+                        console.log(`no autocomplete for ${cmd.data.name}`)
                     }
                 }
-                else {
-                    await cmd.execute(bot, interaction, db)
-                }
-                // console.log('END command OUTPUT')
             }
         }
+        catch (e) {
+            errorMessager(interaction, e)
+        }
+
     }
-    catch (e) {
-        errorMessager(interaction, e)
+    else {
+
+
+        if (!interaction.isCommand()) return
+        // console.log('after isCommand')
+        try {
+            if (!commands || !ready) {
+                await interaction.reply('I am not ready yet, please try again later')
+                return
+            }
+            // console.log('all commands', commands)
+            for (let cmd of commands) {
+                if (cmd?.data?.name == interaction.commandName) {
+                    // @ts-ignore
+                    console.log(`a new command ${cmd.data.name} was called by ${interaction.user?.tag} in guild ${interaction.guild?.name} in channel ${interaction.channel?.name} `)
+                    // get all args
+                    //@ts-ignore
+                    var args = interaction.options._hoistedOptions
+                    for (let arg in args) {
+                        console.log(`${args[arg].name}: ${args[arg].value}`)
+                    }
+                    // console.log('command OUTPUT:')
+                    let cd = cooldowns[interaction.commandName]
+                    let rateLimitData
+                    if (cd) {
+                        rateLimitData = cd.check(interaction.user.id)
+                        if (rateLimitData.pass) {
+                            // cooldown passed
+                            await cmd.execute(bot, interaction, db, errorMessager)
+                        }
+                        else {
+                            // blocked by cooldown
+                            await interaction.reply({
+                                embeds: [
+                                    new MessageEmbed()
+                                        .setTitle('RateLimit hit')
+                                        .setDescription(`Wait wait wait. you are doing stuff too fast. Please wait another \`${prettyMs(rateLimitData.restTime, { verbose: true })}\` until you can use this command again.`)
+                                        .setColor(0xFF0000)
+                                ]
+                            })
+                        }
+                    }
+                    else {
+                        await cmd.execute(bot, interaction, db, errorMessager)
+                    }
+                    // console.log('END command OUTPUT')
+                }
+            }
+        }
+        catch (e) {
+            errorMessager(interaction, e)
+        }
     }
 })
 bot.on('rateLimit', (data) => {
@@ -353,7 +411,7 @@ bot.on('messageCreate', message => {
 
 
 /**
- * @param {CommandInteraction | null | undefined | GuildTextBasedChannel} interaction
+ * @param {CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel | AutocompleteInteraction} interaction
  * @param {Error} e
  * @returns {boolean} true if the error can be ignored
  */
@@ -372,6 +430,35 @@ function errorMessager(interaction, e) {
         })
     }
     else {
+        if (interaction instanceof AutocompleteInteraction) {
+            interaction.respond([{
+                name: 'An error occured:',
+                value: 'e.message'
+
+            },
+            {
+                name: 'Error message:',
+                value: "e.message"
+            },
+            {
+                name: e.message.length > 100 ? e.message.substring(0, 100) : e.message,
+                value: "e.message"
+            },
+            {
+                name: 'Error stack:',
+                value: "e.stack"
+            },
+            {
+                name: e.stack && e.stack.length > 100 ? e.stack.substring(0, 100) : e.stack ?? 'no stack pt1',
+                value: "e.stack"
+            },
+            {
+                name: e.stack && e.stack.length - 100 > 100 ? e.stack.substring(100, 200) : e.stack ?? 'no stack pt2',
+                value: "e.name"
+            }
+            ])
+            return
+        }
 
         if (typeof interaction?.send == 'function') {
 

@@ -33,6 +33,7 @@ module.exports = {
 
             let missing = []
             for (let user of guildData.users) {
+                await tools.sleep(100)
                 // missing.push(user)
                 // continue
                 process.stdout.write(`  fetching user ${user.id}... `)

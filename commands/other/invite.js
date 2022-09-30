@@ -4,7 +4,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders')
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('invite')
-        .setDescription('Invite the bot')
+        .setDescription('Invite the bot.')
     ,
     /**
      * @param {Client} bot
