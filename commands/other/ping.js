@@ -13,8 +13,8 @@ module.exports = {
     async execute(bot, interaction) {
         let start = Date.now()
 
-        await interaction.reply("wait a sec").then(() => {
-            interaction.editReply("pong! " + (Date.now() - start) + "ms")
+        await interaction.reply("wait a sec").then(async () => {
+            await interaction.editReply("pong! " + (Date.now() - start) + "ms")
         })
     },
     /**

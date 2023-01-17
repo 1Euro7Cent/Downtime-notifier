@@ -399,12 +399,12 @@ bot.on('rateLimit', (data) => {
     console.log(data)
     console.log('##########rateLimit##########')
 })
-bot.on('messageCreate', message => {
+bot.on('messageCreate', async message => {
     {
         if (message.author.bot) return
         var mentions = message.mentions.users.toJSON()
         if (mentions[0]?.id == bot.user.id) {
-            message.channel.send(`Hello ${message.author.username}! i do no longer support chat commands. please use slash commands instead. if you cannot see any slash commands, please reinvite the bot.`)
+            await message.channel.send(`Hello ${message.author.username}! i do no longer support chat commands. please use slash commands instead. if you cannot see any slash commands, please reinvite the bot.`)
         }
     }
 })
@@ -456,7 +456,9 @@ function errorMessager(interaction, e) {
                 name: e.stack && e.stack.length - 100 > 100 ? e.stack.substring(100, 200) : e.stack ?? 'no stack pt2',
                 value: "e.name"
             }
-            ])
+            ]).catch(err => {
+                console.error(err)
+            })
             return
         }
 

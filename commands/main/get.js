@@ -24,7 +24,7 @@ module.exports = {
         let data = db.getData('/')
         // @ts-ignore
         let guildData = data[interaction.guild?.id]
-        if (!guildData) return interaction.reply('No data found for this guild')
+        if (!guildData) return await interaction.reply('No data found for this guild')
         await interaction.deferReply()
 
         let desc = ''
