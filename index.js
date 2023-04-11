@@ -400,13 +400,17 @@ bot.on('rateLimit', (data) => {
     console.log('##########rateLimit##########')
 })
 bot.on('messageCreate', async message => {
-    {
-        if (message.author.bot) return
-        var mentions = message.mentions.users.toJSON()
-        if (mentions[0]?.id == bot.user.id) {
-            await message.channel.send(`Hello ${message.author.username}! i do no longer support chat commands. please use slash commands instead. if you cannot see any slash commands, please reinvite the bot.`)
-        }
+
+    if (message.author.bot) return
+    var mentions = message.mentions.users.toJSON()
+    if (mentions[0]?.id == bot.user.id) {
+        await message.channel.send(`Hello ${message.author.username}! i do no longer support chat commands. please use slash commands instead. if you cannot see any slash commands, please reinvite the bot.`)
+            .catch(async err => {
+                await message.react('❌').catch(console.error)
+                console.error(err)
+            })
     }
+
 })
 
 
@@ -467,6 +471,13 @@ function errorMessager(interaction, e) {
             interaction.send(getErrMes(e)).catch(err => {
                 console.error(err)
             })
+        }
+        else {
+            if (typeof interaction.channel?.send == 'function') {
+                interaction.channel.send(getErrMes(e)).catch(err => {
+                    console.error(err)
+                })
+            }
         }
     }
 
