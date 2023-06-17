@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@discordjs/rest": "^0.3.0",
-    "discord-api-types": "^0.31.0",
-    "discord.js": "^13.10.2",
+    "discord-api-types": "^0.31.2",
+    "discord.js": "^13.10.3",
     "node-cooldown": "^0.0.4",
     "node-json-db": "^1.5.0",
     "pretty-ms": "^7.0.1",
@@ -18,11 +18,11 @@
     ]
   },
   "name": "downtime-notifier",
-  "version": "2.4.4",
+  "version": "2.4.5",
   "main": "index.js",
   "scripts": {
     "clean": "rmdir node_modules /s /q && rmdir logs /s /q",
-    "dev": "nodemon index.js -dev"
+    "dev": "nodemon --trace-deprecation index.js -dev "
   },
   "keywords": [],
   "author": "1euro7cent",

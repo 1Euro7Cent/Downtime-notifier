@@ -89,7 +89,7 @@ function removeElemByName(arr, name) {
  * @param {TextChannel | null} channel
  * @param {GuildMember | null | undefined} member
  */
-function hasPermissionToSendMessages(channel, member = channel?.guild?.me) {
+function hasPermissionToSendMessages(channel, member = channel?.guild?.members.me) {
     if (!channel) return false
     // @ts-ignore
     let permissions = channel.permissionsFor(member)
