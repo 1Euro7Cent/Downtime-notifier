@@ -1,0 +1,14 @@
+{
+    "statusChange": {
+        "offline": {
+            "title": "{type} went {status}",
+            "description": "The {type} `{name}` is now `{status}`",
+            "timeName": "onlineTime"
+        },
+        "online": {
+            "title": "{type} went {status}",
+            "description": "The {type} `{name}` is now `{status}`",
+            "timeName": "offlineTime"
+        }
+    }
+}
