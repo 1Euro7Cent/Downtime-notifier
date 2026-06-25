@@ -10,6 +10,18 @@ let currentTexts = structuredClone(defaultTexts)
 
 // let db = new JsonDB(new Config("database", false, true, '/'))
 
+let delayedSends = [
+	// {
+	// 	secondsRemaining: 0,
+	// 	totalWaitSeconds: 0,
+	// 	bot: null,
+	// 	channel: null,
+	// 	messageData: null,
+	//  goneOnline: false,
+	//  userId: null,
+	// }
+]
+
 /**
  * 
  * @param {Client} bot 
@@ -84,6 +96,31 @@ function insertPings(mesData, user, notifications) {
 module.exports = {
 	disabled: false,
 	noCommand: true,
+	interval: 1000, // 1 second
+
+	async timed(bot, db, errorMessager) {
+		// console.log('---- Running delayed sends check ----')
+
+		// Process delayed sends
+		for (let i = delayedSends.length - 1; i >= 0; i--) {
+			let ds = delayedSends[i]
+			ds.secondsRemaining--
+
+			if (ds.secondsRemaining <= 0) {
+				// Time to send the message
+				console.log(`Sending delayed ${ds.goneOnline ? 'online' : 'offline'} notification`)
+				try {
+					await ds.channel.send(ds.messageData)
+				} catch (e) {
+					errorMessager(ds.channel, e)
+
+					console.error('Failed to send delayed message:', e.message)
+				}
+				// Remove from array
+				delayedSends.splice(i, 1)
+			}
+		}
+	},
 	/**
 	 * this runs on startup
 	 * @param {Client} bot
@@ -113,12 +150,13 @@ module.exports = {
 
 				for (let user in gData.users) {
 					if (gData.users[user].id == usrID) {
+						let timeThreshold = gData.users[user].downThreshold || 0
 						let usr = newPresence.user || await bot.users.fetch(usrID).catch(e => null)
 						// if the user gone online
 						if (oldPresence.status == 'offline' && newPresence.status != 'offline') {
 							let mes = getMessage(bot, usr, gData.users[user], 'online')
 							mes = insertPings(mes, usr, gData.notifications)
-							console.log(`${usr.username} went online`)
+							console.log(`${usr.username} went online. waiting for threshold of ${timeThreshold}seconds`)
 							/**
 							 * @type {TextChannel}
 							 */
@@ -129,13 +167,41 @@ module.exports = {
 
 							gData.users[user].wentOnline = Date.now()
 							if (channel && tools.hasPermissionToSendMessages(channel)) {
-								await channel.send(mes).catch((e) => {
-									if (errorMessager(channel, e)) return
-									// remove from db
-									gData.users.splice(user, 1)
-									console.log(`Removed ${usr.username} from the database`)
+								if (timeThreshold == 0) {
+									await channel.send(mes).catch((e) => {
+										if (errorMessager(channel, e)) return
+										// remove from db
+										gData.users.splice(user, 1)
+										console.log(`Removed ${usr.username} from the database`)
 
-								})
+									})
+								}
+								else {
+									console.log(`Scheduling message to be sent in ${timeThreshold} seconds`)
+									// add to array
+									// if already scheduled for opposite status change, remove and dont add a new one
+									let existingIndex = delayedSends.findIndex(ds => ds.bot == bot && ds.channel.id == channel.id && ds.goneOnline == false && ds.userId == usrID)
+
+
+									if (existingIndex != -1) {
+										console.log(`Found existing scheduled offline message for ${usr.username}, removing it`)
+										delayedSends.splice(existingIndex, 1)
+									}
+									else {
+										console.log(`No existing scheduled offline message for ${usr.username} found, adding new one`)
+										delayedSends.push({
+											secondsRemaining: timeThreshold,
+											totalWaitSeconds: timeThreshold,
+											bot: bot,
+											channel: channel,
+											messageData: mes,
+											goneOnline: true,
+											userId: usrID,
+										})
+
+
+									}
+								}
 							}
 							else {
 								gData.broadcastChannel = null
@@ -147,7 +213,7 @@ module.exports = {
 							let mes = getMessage(bot, usr, gData.users[user], 'offline')
 							mes = insertPings(mes, usr, gData.notifications)
 
-							console.log(`${usr.username} went offline`)
+							console.log(`${usr.username} went offline. waiting for threshold of ${timeThreshold}seconds`)
 							/**
 							 * @type {TextChannel}
 							 */
@@ -157,13 +223,36 @@ module.exports = {
 
 							gData.users[user].wentOffline = Date.now()
 							if (channel && tools.hasPermissionToSendMessages(channel)) {
-								await channel.send(mes).catch((e) => {
-									errorMessager(channel, e)
-									// remove from db
+								if (timeThreshold == 0) {
+									await channel.send(mes).catch((e) => {
+										if (errorMessager(channel, e)) return
+										// remove from db
+										gData.users.splice(user, 1)
+										console.log(`Removed ${usr.username} from the database`)
+									})
+								}
+								else {
+									console.log(`Scheduling offline message to be sent in ${timeThreshold} seconds`)
+									// if already scheduled for opposite status change, remove and dont add a new one
+									let existingIndex = delayedSends.findIndex(ds => ds.bot == bot && ds.channel.id == channel.id && ds.goneOnline == true && ds.userId == usrID)
 
-									gData.users.splice(user, 1)
-									console.log(`Removed ${usr.username} from the database`)
-								})
+									if (existingIndex != -1) {
+										console.log(`Found existing scheduled online message for ${usr.username}, removing it`)
+										delayedSends.splice(existingIndex, 1)
+									}
+									else {
+										console.log(`No existing scheduled online message for ${usr.username} found, adding new offline message`)
+										delayedSends.push({
+											secondsRemaining: timeThreshold,
+											totalWaitSeconds: timeThreshold,
+											bot: bot,
+											channel: channel,
+											messageData: mes,
+											goneOnline: false,
+											userId: usrID,
+										})
+									}
+								}
 							}
 							else {
 								gData.broadcastChannel = null

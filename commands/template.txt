@@ -11,27 +11,43 @@ module.exports = {
         .setName('ping')
         .setDescription('Test the bot latency')
     ,
-    cooldown: null, // milliseconds
+cooldown: null, // milliseconds
+
     /**
+     * this runs when the command is executed
      * @param {Client} bot
      * @param {CommandInteraction} interaction
+     * @param {JsonDB} db
+     * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
      */
-    execute(bot, interaction) {
-        var start = Date.now()
+    async execute(bot, interaction, db, errorMessager) { },
 
-        interaction.reply("wait a sec").then(() => {
-            interaction.editReply("pong! " + (Date.now() - start) + "ms")
-        })
-    },
+
+    /**
+     * 
+     * this is triggered when the user requests a aoutocompletion
+     * @param {Client} bot
+     * @param {AutocompleteInteraction} interaction
+     * @param {JsonDB} db
+     * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
+     */
+    async autocomplete(bot, interaction, db, errorMessager) { },
+
     /**
      * this runs on startup
      * @param {Client} bot
+     * @param {JsonDB} db
+     * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
      */
-    startup(bot) { },
+    startup(bot, db, errorMessager) { },
+
+    
     interval: 500,
     /**
      * this runs every interval milliseconds
      * @param {Client} bot
+     * @param {JsonDB} db
+     * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
      */
-    timed(bot) { }
+    timed(bot, db, errorMessager) { }
 }

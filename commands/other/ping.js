@@ -4,17 +4,17 @@ const { SlashCommandBuilder } = require('@discordjs/builders')
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ping')
-        .setDescription('Test the bot latency')
+        .setDescription('Test the bot latency.')
     ,
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
      */
-    execute(bot, interaction) {
-        var start = Date.now()
+    async execute(bot, interaction) {
+        let start = Date.now()
 
-        interaction.reply("wait a sec").then(() => {
-            interaction.editReply("pong! " + (Date.now() - start) + "ms")
+        await interaction.reply("wait a sec").then(async () => {
+            await interaction.editReply("pong! " + (Date.now() - start) + "ms")
         })
     },
     /**

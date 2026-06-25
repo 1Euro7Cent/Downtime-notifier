@@ -4,14 +4,14 @@ const { SlashCommandBuilder } = require('@discordjs/builders')
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('invite')
-        .setDescription('Invite the bot')
+        .setDescription('Invite the bot.')
     ,
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
      */
-    execute(bot, interaction) {
-        interaction.reply({
+    async execute(bot, interaction) {
+        await interaction.reply({
             embeds: [
                 new MessageEmbed()
                     .setTitle('Do you like the bot?')

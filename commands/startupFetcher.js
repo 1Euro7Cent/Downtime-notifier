@@ -13,7 +13,7 @@ module.exports = {
      * @param {Client} bot
      * @param {JsonDB} db
      */
-    async startup(bot, db) {
+    async startup(bot, db, errorMessager) {
         console.log('---- Fetcher startup ----')
         let start = Date.now()
         // let db = new JsonDB(new Config("database", false, true, '/'))
@@ -33,9 +33,10 @@ module.exports = {
 
             let missing = []
             for (let user of guildData.users) {
+                await tools.sleep(100)
                 // missing.push(user)
                 // continue
-                process.stdout.write(`fetching user ${user.id}... `)
+                process.stdout.write(`  fetching user ${user.id}... `)
 
                 let fetched = await bot.users.fetch(user.id).catch(e => null)
                 if (!fetched) {
@@ -73,7 +74,7 @@ module.exports = {
                             .setDescription(desc)
                             .setColor(0x00ff00)
 
-                        await channel.send({ embeds: [embed] })
+                        await channel.send({ embeds: [embed] }).catch(e => errorMessager(channel, e))
 
                     }
                 }

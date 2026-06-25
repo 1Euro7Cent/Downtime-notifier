@@ -3,6 +3,9 @@ const { SlashCommandBuilder } = require('@discordjs/builders')
 // database stuff
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const { ChannelType } = require('discord-api-types/v10')
+
+const tools = require('../../tools')
 
 
 module.exports = {
@@ -10,15 +13,22 @@ module.exports = {
     noCommand: false,
     data: new SlashCommandBuilder()
         .setName('setchannel')
-        .setDescription('sets the broadcast channel for the watchlist')
-        .addChannelOption(builder => {
-            builder.setName('channel')
-                // .setRequired(true)
-                .setDescription('the channel to set')
-                .addChannelType(0)
+        .setDescription('Sets the broadcast channel for the watchlist.')
+        .addChannelOption(option => {
+            option.setName('channel')
+                .setDescription('the channel to set the broadcast channel to')
+                .addChannelTypes(ChannelType.GuildText, ChannelType.GuildNews)
 
-            return builder
+            return option
         })
+    // .addChannelOption(builder => {
+    //     builder.setName('channel')
+    //         // .setRequired(true)
+    //         .setDescription('the channel to set')
+    //         .addChannelType(0)
+
+    //     return builder
+    // })
     ,
     cooldown: null, // milliseconds
     /**
@@ -26,7 +36,7 @@ module.exports = {
      * @param {CommandInteraction} interaction
      * @param {JsonDB} db
      */
-    execute(bot, interaction, db) {
+    async execute(bot, interaction, db) {
         // @ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             /**
@@ -40,14 +50,15 @@ module.exports = {
             let gData = data[interaction.guild.id]
             if (!gData) gData = {
                 broadcastChannel: null,
-                users: []
+                users: [],
+                notifications: {}
             }
             // check if we have permission to send messages in the channel
 
             if (!channel) {
                 // remove the channel
                 gData.broadcastChannel = null
-                interaction.reply({
+                await interaction.reply({
                     embeds: [
                         new MessageEmbed()
                             .setTitle('Success')
@@ -57,8 +68,10 @@ module.exports = {
                 })
             }
             else {
-                if (!channel.permissionsFor(bot.user).has('SEND_MESSAGES')) {
-                    interaction.reply({
+                // permiossion check
+
+                if (!tools.hasPermissionToSendMessages(channel)) {
+                    await interaction.reply({
                         embeds: [
                             new MessageEmbed()
                                 .setTitle('Error')
@@ -74,7 +87,7 @@ module.exports = {
             data[interaction.guild.id] = gData
             db.push('/', data)
             if (gData.broadcastChannel) {
-                interaction.reply({
+                await interaction.reply({
                     embeds: [
                         new MessageEmbed()
                             .setTitle(`Success`)
@@ -85,7 +98,7 @@ module.exports = {
             }
         }
         else {
-            interaction.reply({
+            await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setTitle('Error')

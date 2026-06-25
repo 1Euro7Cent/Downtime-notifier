@@ -1,4 +1,4 @@
-const { Client, CommandInteraction, MessageEmbed, Permissions } = require('discord.js')
+const { Client, CommandInteraction, MessageEmbed, Permissions, AutocompleteInteraction, User } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
@@ -8,25 +8,89 @@ module.exports = {
     disabled: false,
     data: new SlashCommandBuilder()
         .setName('remove')
-        .setDescription('removes a bot from the watchlist')
-        .addUserOption(builder => {
+        .setDescription('Removes a bot from the watchlist.')
+        .addStringOption(builder => {
             builder.setName('user')
                 .setRequired(true)
                 .setDescription('the user to remove')
+                .setAutocomplete(true)
 
             return builder
         })
     ,
     cooldown: null, // milliseconds
+
+    /**
+ * 
+ * this is triggered when the user requests a aoutocompletion
+ * @param {Client} bot
+ * @param {AutocompleteInteraction} interaction
+ * @param {JsonDB} db
+ * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
+ */
+    async autocomplete(bot, interaction, db, errorMessager) {
+
+        if (interaction.guild != null) {
+
+            let data = db.getData('/')
+            let gData = data[interaction.guild.id]
+
+            if (!gData) {
+                gData = {
+                    broadcastChannel: null,
+                    users: [],
+                    notifications: []
+                }
+            }
+            if (!gData.notifications) gData.notifications = {}
+
+            let userIds = gData.users.map(u => u.id)
+
+            /**
+             * @type {User[]}
+             */
+            let users = await Promise.all(userIds.map(async id => {
+                let user = await bot.users.fetch(id).catch(e => null)
+                return user
+            }))
+
+            let focusedValue = interaction.options.getFocused()
+
+            // console.log(removableUsers)
+
+            let possibleValues = users.filter(u => u != null && (u.username.toLowerCase().includes(focusedValue.toLowerCase())
+                || u.tag.toLowerCase().includes(focusedValue.toLowerCase())
+                || u.id.toLowerCase().includes(focusedValue.toLowerCase())
+            ))
+
+            let respondData = possibleValues.map(choice => ({ name: choice.tag, value: choice.id }))
+
+            // if (respondData.length > 0) {
+            //     if (gData.notifications[interaction.user.id] && gData.notifications[interaction.user.id].includes('all'))
+            //         respondData.unshift({ name: 'All (Removeable)', value: 'all' })
+            //     else
+            //         respondData.unshift({ name: 'All', value: 'all' })
+            // }
+            // console.log(respondData)
+
+            await interaction.respond(respondData)
+        }
+
+    },
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
      * @param {JsonDB} db
      */
-    execute(bot, interaction, db) {
+    async execute(bot, interaction, db) {
         //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
-            let user = interaction.options.getUser('user')
+            // let user = interaction.options.getUser('user')
+            /**
+             * @type {User}
+             */
+            let user = interaction.options.getString('user')
+            user = await bot.users.fetch(user).catch(e => null)
             // let db = new JsonDB(new Config("database", true, true, '/'))
             let data = db.getData('/')
             let gData = data[interaction.guild.id]
@@ -37,7 +101,7 @@ module.exports = {
             let users = gData.users.filter(u => u.id == user.id)
             if (users.length == 0) {
 
-                interaction.reply({
+                await interaction.reply({
                     embeds: [
                         new MessageEmbed()
                             .setTitle('Error')
@@ -53,7 +117,7 @@ module.exports = {
 
             db.push('/', data)
 
-            interaction.reply({
+            await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setTitle(`Success`)
@@ -63,7 +127,7 @@ module.exports = {
             })
         }
         else {
-            interaction.reply({
+            await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setTitle('Error')

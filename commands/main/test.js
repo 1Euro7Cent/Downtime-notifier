@@ -25,8 +25,17 @@ module.exports = {
 
             return builder
         })
+        .addIntegerOption(builder => {
+            builder.setName('duration')
+                .setDescription('Duration of the fake downtime in seconds (default: 10)')
+                .setMinValue(1)
+                .setMaxValue(300) // 5 minutes
+                .setRequired(false)
+            return builder
+        })
     ,
     cooldown: 60000, // milliseconds 1 minute
+    // cooldown: 5000, // milliseconds 5 seconds
     /**
  * 
  * this is triggered when the user requests a aoutocompletion
@@ -108,13 +117,20 @@ module.exports = {
                 return
             }
 
+            let duration = interaction.options.getInteger('duration') || 10
+
+
+            await bot.users.fetch(user.id).catch(e => null)
             let member = interaction.guild?.members.resolve(user.id)
+            if (!member) {
+                member = await interaction.guild?.members.cache.get(user.id)
+            }
             if (!member) {
                 await interaction.reply({
                     embeds: [
                         new MessageEmbed()
                             .setTitle('Error')
-                            .setDescription(`Failed to find member \`${user.username}\``)
+                            .setDescription(`Failed to find member \`${user.username}\`\n If the user exists in the server, try to make it change its status in any way`)
                             .setColor(0xff0000)
 
                     ]
@@ -124,7 +140,24 @@ module.exports = {
             // let db = new JsonDB(new Config("database", true, true, '/'))
             let data = db.getData('/')
 
+            /** @type {Presence}*/
+            // @ts-ignore
             let currentPresence = member.presence
+            if (currentPresence == null) {
+                console.error('presence is null. setting to empty object')
+                // currentPresence = {
+                //     guild: interaction.guild,
+                //     userId: user.id,
+                //     user: user,
+                // }
+                // @ts-ignore
+                currentPresence = new Presence(bot, {
+                    guild: interaction.guild,
+                    userId: user.id,
+                    user: user,
+                })
+                console.log(currentPresence)
+            }
             // console.log(currentPresence)
 
             let goOffline = currentPresence.status == 'online'
@@ -137,7 +170,7 @@ module.exports = {
                 embeds: [
                     new MessageEmbed()
                         .setTitle('Testing')
-                        .setDescription(`Simulating ${goOffline ? 'downtime' : 'uptime'} for \`${user.username}\` for 10 seconds`)
+                        .setDescription(`Simulating ${goOffline ? 'downtime' : 'uptime'} for \`${user.username}\` for ${duration} seconds`)
                         .setColor(0x00ff00)
 
                 ]
@@ -148,7 +181,7 @@ module.exports = {
 
             setTimeout(async () => {
                 await bot.emit('presenceUpdate', currentPresence2, currentPresence)
-            }, 10000) // wait 10 seconds
+            }, duration * 1000) // wait for the specified duration
 
             // throw new Error('not implemented yet')
             return
