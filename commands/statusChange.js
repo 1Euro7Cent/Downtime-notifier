@@ -1,4 +1,4 @@
-const { Client, CommandInteraction, MessageEmbed, TextChannel } = require('discord.js')
+const { Client, CommandInteraction, MessageEmbed, TextChannel, User } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
 const { JsonDB } = require('node-json-db')
 const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
