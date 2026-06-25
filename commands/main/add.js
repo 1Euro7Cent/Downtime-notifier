@@ -16,6 +16,14 @@ module.exports = {
 
             return builder
         })
+        .addIntegerOption(builder => {
+            builder.setName('duration')
+                .setDescription('Duration of downtime in seconds for actually notifying (default: 0)')
+                .setMinValue(0)
+                .setMaxValue(300) // 5 minutes
+                .setRequired(false)
+            return builder
+        })
     ,
     cooldown: null, // milliseconds
     /**
@@ -27,6 +35,7 @@ module.exports = {
         //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             let user = interaction.options.getUser('user')
+            let duration = interaction.options.getInteger('duration') || 0
             // let db = new JsonDB(new Config("database", true, true, '/'))
             let data = db.getData('/')
 
@@ -89,7 +98,7 @@ module.exports = {
                 }
             }
 
-            gData.users.push({ id: user.id })
+            gData.users.push({ id: user.id, downThreshold: duration })
             data[interaction.guild.id] = gData
 
             db.push('/', data)

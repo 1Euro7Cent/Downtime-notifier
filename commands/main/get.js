@@ -13,7 +13,7 @@ module.exports = {
         .setName('get')
         .setDescription('Lists all the bots and mentions that are in the database.')
     ,
-    cooldown: 5000, // 5 seconds
+    cooldown: 60000, // 60 seconds
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
@@ -46,13 +46,18 @@ module.exports = {
 
         // users
         let users = guildData.users
+
         for (let u in users) {
+            bot.users.fetch(users[u].id).catch(e => null)
             let user = await interaction.guild?.members.cache.get(users[u].id)
             if (user) {
                 desc += `${user.user}: \`${user.presence?.status ? user.presence?.status : 'Unknown'}\`\n`
             } else {
                 desc += `\`${users[u].id}\`: \`not found\`\n`
             }
+
+            // add downtime threshold if exists
+            desc += `   - Downtime threshold: \`${users[u].downThreshold ? users[u].downThreshold + ' seconds' : 'Disabled'}\`\n`
         }
 
         // notifications
