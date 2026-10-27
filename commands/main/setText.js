@@ -1,15 +1,15 @@
 const { Client, CommandInteraction, MessageEmbed, Permissions, TextChannel } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
 // database stuff
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
 const { ChannelType } = require('discord-api-types/v10')
 
-const tools = require('../../tools')
+const tools = require('../../src/tools')
 
 
 module.exports = {
-    disabled: false,
+    disabled: true,
     noCommand: false,
     data: new SlashCommandBuilder()
         .setName('settext')
@@ -63,6 +63,18 @@ module.exports = {
      * @param {JsonDB} db
      */
     async execute(bot, interaction, db) {
+
+        interaction.reply({
+            embeds: [
+                new MessageEmbed()
+                .setTitle("Not implemented")
+                .setDescription("This command is not yet implemented due to important need for database change \ndont worry this command will work soon")
+                .setColor(0xff0000)
+            ],
+            ephemeral: true
+        })
+        return
+
         // @ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             let type = interaction.options.getString('type')

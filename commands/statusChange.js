@@ -1,8 +1,8 @@
 const { Client, CommandInteraction, MessageEmbed, TextChannel, User } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
-const tools = require('../tools')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const tools = require('../src/tools')
 const prettyMs = require('pretty-ms')
 const defaultTexts = require('./../texts.json')
 
@@ -63,32 +63,16 @@ function getMessage(bot, user, tUser, type) {
 
 /**
  * @param {{ embeds: MessageEmbed[] }} mesData
- * @param {User} user
- * @param {*} notifications
+ * @param {{guildId: string, mentionUserId: string, watchId: string}[]} notifications
  * @returns {{ embeds: MessageEmbed[], content: string } | { embeds: MessageEmbed[] }}
  */
-function insertPings(mesData, user, notifications) {
-	if (!user) return mesData
-	let users = []
-
-	for (let toNotify in notifications) {
-		for (let u of notifications[toNotify]) {
-			if (u == 'all') {
-				users.push(toNotify)
-				continue
-			}
-			if (u == user.id) {
-				users.push(toNotify)
-			}
-		}
-	}
-
-	// console.log(users)
+function insertPings(mesData, notifications) {
+	let users = notifications.map(notification => notification.mentionUserId)
 	if (users.length == 0) return mesData
 
 	return {
 		embeds: mesData.embeds,
-		content: users.length > 0 ? users.map(u => `<@${u}>`).join(' ') : ''
+		content: users.map(userId => `<@${userId}>`).join(' ')
 	}
 
 }
@@ -98,7 +82,13 @@ module.exports = {
 	noCommand: true,
 	interval: 1000, // 1 second
 
-	async timed(bot, db, errorMessager) {
+	/**
+	 *
+	 * @param {Client} bot
+	 * @param {import('node:sqlite').DatabaseSync} database
+	 * @param {*} errorMessager
+	 */
+	async timed(bot, database, errorMessager) {
 		// console.log('---- Running delayed sends check ----')
 
 		// Process delayed sends
@@ -124,148 +114,165 @@ module.exports = {
 	/**
 	 * this runs on startup
 	 * @param {Client} bot
-	 * @param {JsonDB} db
+	 * @param {import('node:sqlite').DatabaseSync} database
 	 */
-	async startup(bot, db, errorMessager) {
+	async startup(bot, database, errorMessager) {
 		console.log('---- Initializing StatusChangeListener ----')
 		bot.on('presenceUpdate', async (oldPresence, newPresence) => {
 			if (!oldPresence) return
-			// db.reload()
 			try {
 				let usrID = newPresence.user?.id || oldPresence.user?.id || newPresence.userId || oldPresence.userId
-				let data = db.getData('/')
-				let gData = data[newPresence.guild.id]
-				if (!gData || !gData.broadcastChannel) return
+
+				let broadcastChannel = database.prepare('SELECT broadcastChannelId FROM guilds WHERE guildId = ?').get(newPresence.guild.id)?.broadcastChannelId
+
+				if (typeof broadcastChannel !== 'string') return
+				broadcastChannel = broadcastChannel.trim()
+				if (!/^\d+$/.test(broadcastChannel)) {
+					console.error(`Invalid broadcast channel ID for guild ${newPresence.guild.id}; clearing it`)
+					database.prepare('UPDATE guilds SET broadcastChannelId = NULL WHERE guildId = ?').run(newPresence.guild.id)
+					return
+				}
+				// console.log("broadcastChannel", broadcastChannel)
+
+				// get custom texts if available
+
+				let customTexts = database.prepare('SELECT * FROM texts WHERE guildId = ?').get(newPresence.guild.id)
+
 
 				// set the texts
 				currentTexts = structuredClone(defaultTexts)
 
-				if (gData.texts?.offlineTitle) currentTexts.statusChange.offline.title = gData.texts.offlineTitle
-				if (gData.texts?.onlineTitle) currentTexts.statusChange.online.title = gData.texts.onlineTitle
-				if (gData.texts?.offlineDescription) currentTexts.statusChange.offline.description = gData.texts.offlineDescription
-				if (gData.texts?.onlineDescription) currentTexts.statusChange.online.description = gData.texts.onlineDescription
+				if (customTexts?.offlineTitle) currentTexts.statusChange.offline.title = customTexts.offlineTitle
+				if (customTexts?.onlineTitle) currentTexts.statusChange.online.title = customTexts.onlineTitle
+				if (customTexts?.offlineDescription) currentTexts.statusChange.offline.description = customTexts.offlineDescription
+				if (customTexts?.onlineDescription) currentTexts.statusChange.online.description = customTexts.onlineDescription
 
-				if (gData.texts?.offlineTimeName) currentTexts.statusChange.offline.timeName = gData.texts.offlineTimeName
-				if (gData.texts?.onlineTimeName) currentTexts.statusChange.online.timeName = gData.texts.onlineTimeName
+				// check if the user is in the database under this guild
 
-				for (let user in gData.users) {
-					if (gData.users[user].id == usrID) {
-						let timeThreshold = gData.users[user].downThreshold || 0
-						let usr = newPresence.user || await bot.users.fetch(usrID).catch(e => null)
-						// if the user gone online
-						if (oldPresence.status == 'offline' && newPresence.status != 'offline') {
-							let mes = getMessage(bot, usr, gData.users[user], 'online')
-							mes = insertPings(mes, usr, gData.notifications)
-							console.log(`${usr.username} went online. waiting for threshold of ${timeThreshold}seconds`)
-							/**
-							 * @type {TextChannel}
-							 */
+				let user = database.prepare('SELECT * FROM users WHERE guildId = ? AND userId = ?').get(newPresence.guild.id, usrID)
+				// console.log("user", user)
 
-							// @ts-ignore
-							let channel = await bot.channels.cache.get(gData.broadcastChannel)
+				if (!user) return
 
+				let timeThreshold = user.downThreshold || 0
+				let usr = newPresence.user || await bot.users.fetch(usrID).catch(e => null)
 
-							gData.users[user].wentOnline = Date.now()
-							if (channel && tools.hasPermissionToSendMessages(channel)) {
-								if (timeThreshold == 0) {
-									await channel.send(mes).catch((e) => {
-										if (errorMessager(channel, e)) return
-										// remove from db
-										gData.users.splice(user, 1)
-										console.log(`Removed ${usr.username} from the database`)
+				let notifications = database.prepare('SELECT * FROM notifications WHERE guildId = ? AND watchId = ?').all(newPresence.guild.id, user.userId)
+				// if the user gone online
+				if (oldPresence.status == 'offline' && newPresence.status != 'offline') {
+					let mes = getMessage(bot, usr, user, 'online')
+					mes = insertPings(mes, notifications)
+					console.log(`${usr.username} went online. waiting for threshold of ${timeThreshold}seconds`)
+					/**
+					 * @type {TextChannel}
+					 */
 
-									})
-								}
-								else {
-									console.log(`Scheduling message to be sent in ${timeThreshold} seconds`)
-									// add to array
-									// if already scheduled for opposite status change, remove and dont add a new one
-									let existingIndex = delayedSends.findIndex(ds => ds.bot == bot && ds.channel.id == channel.id && ds.goneOnline == false && ds.userId == usrID)
+					// @ts-ignore
+					let channel = await newPresence.guild.channels.fetch(broadcastChannel)
+
+					// console.log("channel", channel)
+					// console.log("hasPermissionToSendMessages", tools.hasPermissionToSendMessages(channel))
 
 
-									if (existingIndex != -1) {
-										console.log(`Found existing scheduled offline message for ${usr.username}, removing it`)
-										delayedSends.splice(existingIndex, 1)
-									}
-									else {
-										console.log(`No existing scheduled offline message for ${usr.username} found, adding new one`)
-										delayedSends.push({
-											secondsRemaining: timeThreshold,
-											totalWaitSeconds: timeThreshold,
-											bot: bot,
-											channel: channel,
-											messageData: mes,
-											goneOnline: true,
-											userId: usrID,
-										})
+					database.prepare('UPDATE users SET wentOnline = ? WHERE guildId = ? AND userId = ?').run(Date.now(), newPresence.guild.id, usrID)
+					if (channel && tools.hasPermissionToSendMessages(channel)) {
+						if (timeThreshold == 0) {
+							await channel.send(mes).catch((e) => {
+								if (errorMessager(channel, e)) return
+								// remove from db
+
+								database.prepare('DELETE FROM users WHERE guildId = ? AND userId = ?').run(newPresence.guild.id, usrID)
 
 
-									}
-								}
+								console.log(`Removed ${usr.username} from the database`)
+
+							})
+						}
+						else {
+							console.log(`Scheduling message to be sent in ${timeThreshold} seconds`)
+							// add to array
+							// if already scheduled for opposite status change, remove and dont add a new one
+							let existingIndex = delayedSends.findIndex(ds => ds.bot == bot && ds.channel.id == channel.id && ds.goneOnline == false && ds.userId == usrID)
+
+
+							if (existingIndex != -1) {
+								console.log(`Found existing scheduled offline message for ${usr.username}, removing it`)
+								delayedSends.splice(existingIndex, 1)
 							}
 							else {
-								gData.broadcastChannel = null
-								console.log(`Removed broadcast channel of ${usr.username}`)
+								console.log(`No existing scheduled offline message for ${usr.username} found, adding new one`)
+								delayedSends.push({
+									secondsRemaining: timeThreshold,
+									totalWaitSeconds: timeThreshold,
+									bot: bot,
+									channel: channel,
+									messageData: mes,
+									goneOnline: true,
+									userId: usrID,
+								})
+
+
 							}
 						}
-						// if the user went offline
-						if (oldPresence.status != 'offline' && newPresence.status == 'offline') {
-							let mes = getMessage(bot, usr, gData.users[user], 'offline')
-							mes = insertPings(mes, usr, gData.notifications)
+					}
+					else {
+						database.prepare('UPDATE guilds SET broadcastChannelId = NULL WHERE guildId = ?').run(newPresence.guild.id)
+						console.log(`Removed broadcast channel of ${usr.username}`)
+					}
+				}
+				// if the user went offline
+				if (oldPresence.status != 'offline' && newPresence.status == 'offline') {
+					let mes = getMessage(bot, usr, user, 'offline')
+					mes = insertPings(mes, notifications)
 
-							console.log(`${usr.username} went offline. waiting for threshold of ${timeThreshold}seconds`)
-							/**
-							 * @type {TextChannel}
-							 */
+					console.log(`${usr.username} went offline. waiting for threshold of ${timeThreshold}seconds`)
+					/**
+					 * @type {TextChannel}
+					 */
 
-							// @ts-ignore
-							let channel = await bot.channels.cache.get(gData.broadcastChannel)
+					// @ts-ignore
+					let channel = await newPresence.guild.channels.fetch(broadcastChannel)
 
-							gData.users[user].wentOffline = Date.now()
-							if (channel && tools.hasPermissionToSendMessages(channel)) {
-								if (timeThreshold == 0) {
-									await channel.send(mes).catch((e) => {
-										if (errorMessager(channel, e)) return
-										// remove from db
-										gData.users.splice(user, 1)
-										console.log(`Removed ${usr.username} from the database`)
-									})
-								}
-								else {
-									console.log(`Scheduling offline message to be sent in ${timeThreshold} seconds`)
-									// if already scheduled for opposite status change, remove and dont add a new one
-									let existingIndex = delayedSends.findIndex(ds => ds.bot == bot && ds.channel.id == channel.id && ds.goneOnline == true && ds.userId == usrID)
+					database.prepare('UPDATE users SET wentOffline = ? WHERE guildId = ? AND userId = ?').run(Date.now(), newPresence.guild.id, usrID)
+					if (channel && tools.hasPermissionToSendMessages(channel)) {
+						if (timeThreshold == 0) {
+							await channel.send(mes).catch((e) => {
+								if (errorMessager(channel, e)) return
+								// remove from db
 
-									if (existingIndex != -1) {
-										console.log(`Found existing scheduled online message for ${usr.username}, removing it`)
-										delayedSends.splice(existingIndex, 1)
-									}
-									else {
-										console.log(`No existing scheduled online message for ${usr.username} found, adding new offline message`)
-										delayedSends.push({
-											secondsRemaining: timeThreshold,
-											totalWaitSeconds: timeThreshold,
-											bot: bot,
-											channel: channel,
-											messageData: mes,
-											goneOnline: false,
-											userId: usrID,
-										})
-									}
-								}
+								database.prepare('DELETE FROM users WHERE guildId = ? AND userId = ?').run(newPresence.guild.id, usrID)
+								console.log(`Removed ${usr.username} from the database`)
+							})
+						}
+						else {
+							console.log(`Scheduling offline message to be sent in ${timeThreshold} seconds`)
+							// if already scheduled for opposite status change, remove and dont add a new one
+							let existingIndex = delayedSends.findIndex(ds => ds.bot == bot && ds.channel.id == channel.id && ds.goneOnline == true && ds.userId == usrID)
+
+							if (existingIndex != -1) {
+								console.log(`Found existing scheduled online message for ${usr.username}, removing it`)
+								delayedSends.splice(existingIndex, 1)
 							}
 							else {
-								gData.broadcastChannel = null
-								console.log(`Removed broadcast channel of ${usr.username}`)
+								console.log(`No existing scheduled online message for ${usr.username} found, adding new offline message`)
+								delayedSends.push({
+									secondsRemaining: timeThreshold,
+									totalWaitSeconds: timeThreshold,
+									bot: bot,
+									channel: channel,
+									messageData: mes,
+									goneOnline: false,
+									userId: usrID,
+								})
 							}
-
 						}
-						// data.users = gData.users
-						db.push('/', data)
+					}
+					else {
+						database.prepare('UPDATE guilds SET broadcastChannelId = NULL WHERE guildId = ?').run(newPresence.guild.id)
+						console.log(`Removed broadcast channel of ${usr.username}`)
 					}
 
 				}
-				// db.save()
 			} catch (e) {
 				errorMessager(undefined, e)
 			}

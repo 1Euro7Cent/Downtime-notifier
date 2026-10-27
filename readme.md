@@ -1,7 +1,7 @@
 ## Requirements
 
 - A [brain](https://www.youtube.com/watch?v=xvFZjo5PgG0)
-- [NodeJS v16+](https://nodejs.org/en/)
+- [NodeJS v24.22.1+](https://nodejs.org/en/) (Critical vulnurabilities fixed in v24.22.1)
 - A [discord app](https://discord.com/developers/applications)
 
 ## Installation

@@ -1,8 +1,8 @@
 const { Client, CommandInteraction, MessageEmbed, Permissions, GuildChannel, TextChannel, GuildMember } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
-const tools = require('../../tools')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const tools = require('../../src/tools')
 
 module.exports = {
     disabled: false,
@@ -29,26 +29,37 @@ module.exports = {
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      */
-    async execute(bot, interaction, db) {
+    async execute(bot, interaction, database) {
         //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             let user = interaction.options.getUser('user')
             let duration = interaction.options.getInteger('duration') || 0
             // let db = new JsonDB(new Config("database", true, true, '/'))
+
+            /*
             let data = db.getData('/')
 
             /**
              * @type {{broadcastChannel: string | null, users: {id:string,wentOffline:number,wentOnline:number}[]}}
              */
+            /*
             let gData = data[interaction.guild.id]
             if (!gData) gData = {
                 broadcastChannel: null,
                 users: [],
                 notifications: {}
             }
-            if (gData.users.filter(u => u.id == user.id).length > 0) {
+
+            //*/
+
+            // check if the user is already in the watchlist
+
+            let userInWatchlist = database.prepare("SELECT * FROM users WHERE guildId = ? AND userId = ?").get(interaction.guild.id, user.id)
+
+
+            if (typeof userInWatchlist !== "undefined") {
                 await interaction.reply({
                     embeds: [
                         new MessageEmbed()
@@ -78,8 +89,10 @@ module.exports = {
             console.log(`Done`)
             // make shure the bot can send messages in the channel bevore adding it
 
-            if (gData.broadcastChannel) {
-                let channel = await bot.channels.fetch(gData.broadcastChannel).catch(e => null)
+            let broadcastChannel = database.prepare('SELECT broadcastChannelId FROM guilds WHERE guildId = ?').get(interaction.guild.id)?.broadcastChannelId
+
+            if (broadcastChannel) {
+                let channel = await bot.channels.fetch(broadcastChannel).catch(e => null)
 
 
 
@@ -98,16 +111,13 @@ module.exports = {
                 }
             }
 
-            gData.users.push({ id: user.id, downThreshold: duration })
-            data[interaction.guild.id] = gData
-
-            db.push('/', data)
+            database.prepare("INSERT INTO users (guildId, userId, downThreshold) VALUES (?, ?, ?)").run(interaction.guild.id, user.id, duration)
 
             await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setTitle(`Success`)
-                        .setDescription(`\`${user.username}\` has been added to the watchlist.` + (gData.broadcastChannel !== null ? `` : '\n\nYou need to set a broadcast channel for the bot to send notifications to.'))
+                        .setDescription(`\`${user.username}\` has been added to the watchlist.` + (broadcastChannel !== null ? `` : '\n\nYou need to set a broadcast channel for the bot to send notifications to.'))
                         .setColor(0x00ff00)
                 ]
             })

@@ -1,3 +1,9 @@
+if (require.main === module) {
+    // console.error('This file is not meant to be run directly. Please run shardManager instead.')
+    console.warn('This file is not meant to be run directly. Please run shardManager.js instead.')
+
+}
+
 const fs = require('fs')
 const { Client, Intents, MessageEmbed, CommandInteraction, GuildChannel, AutocompleteInteraction } = require('discord.js')
 const { REST } = require('@discordjs/rest')
@@ -7,12 +13,13 @@ const args = new startup.StartupArgs("-")
 const process = require('process')
 const Cooldown = require('node-cooldown')
 const prettyMs = require('pretty-ms')
-const tools = require('./tools')
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const tools = require('./src/tools')
+const { DatabaseSync } = require('node:sqlite')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
 
 // make shure all important dirs nad config exist
-if (!fs.existsSync('./config.json')) fs.writeFileSync('./config.json', JSON.stringify({ token: 'get your token at https://discord.com/developers/applications', "logs": { crash: "crash{y}.{m}.{d}-{h}_{i}.{s}.log" }, }, null, 2))
+if (!fs.existsSync('./config.json')) fs.writeFileSync('./config.json', JSON.stringify({ token: 'get your token at https://discord.com/developers/applications', "logs": { crash: "crash{y}.{m}.{d}-{h}_{i}.{s}.log" }, "db": { "filePath": "./database.sqlite" } }, null, 2))
 if (!fs.existsSync('./logs')) fs.mkdirSync('./logs')
 if (!fs.existsSync('./temp')) fs.mkdirSync('./temp')
 
@@ -21,9 +28,14 @@ fs.readdirSync('./temp').forEach(file => {
     fs.unlinkSync(`./temp/${file}`)
 })
 
-let db = new JsonDB(new Config("database", true, args.get("dev"), '/'))
 
 const config = require('./config.json')
+
+// let db = new JsonDB(new Config("database", true, args.get("dev"), '/'))
+
+let database = new DatabaseSync(`./${config.db.filePath}`)
+
+
 
 let ready = false
 
@@ -42,6 +54,7 @@ process.on("SIGINT", function () {
     process.exit(-1)
 })
 
+/*
 process.on('exit', function (code) {
     console.log(`Process exited with code: ${code}`)
 
@@ -60,6 +73,7 @@ process.on('exit', function (code) {
         db.save()
     }
 })
+    //*/
 
 process.on('uncaughtException', err => {
     let date = new Date()
@@ -165,74 +179,84 @@ bot.on('ready', () => {
 
     (async () => {
         try {
-            if (tools.objLength(db.getData('/')) >= 20) {
-                console.log('setting status to notify that the bot is starting up')
+            // dont check for command updates to discord if shard is not 0
+            if (bot.shard && bot.shard.ids.includes(0) || !bot.shard) {
+                console.log("shard is 0. checking for changed slash commands")
+                /*
+                if (tools.objLength(db.getData('/')) >= 20) {
+                    console.log('setting status to notify that the bot is starting up')
+    
+                    bot.user?.setPresence({
+                        activities: [{
+                            name: "Starting up...",
+                            type: "PLAYING"
+                        }]
+                    })
+                    bot.user?.setStatus('dnd')
+                }
+                    //*/
+                if (args.get('reload')) {
+                    var arg = args.get('reload')
+                    // console.log(arg)
+                    if (Array.isArray(arg)) {
 
-                bot.user?.setPresence({
-                    activities: [{
-                        name: "Starting up...",
-                        type: "PLAYING"
-                    }]
-                })
-                bot.user?.setStatus('dnd')
-            }
-            if (args.get('reload')) {
-                var arg = args.get('reload')
-                // console.log(arg)
-                if (Array.isArray(arg)) {
 
-
-                    for (let guildID of arg) {
-                        process.stdout.write(`reloading ${guildID}'s slash commands... `)
-                        await rest.put(Routes.applicationGuildCommands(bot.user.id, guildID), { body: [] })
-                        console.log('done.')
+                        for (let guildID of arg) {
+                            process.stdout.write(`reloading ${guildID}'s slash commands... `)
+                            await rest.put(Routes.applicationGuildCommands(bot.user.id, guildID), { body: [] })
+                            console.log('done.')
+                        }
                     }
                 }
-            }
-            if (args.get('del')) {
-                process.stdout.write('clearing old commands... ')
-                await rest.put(Routes.applicationCommands(bot.user.id), { body: [] })
-                console.log('done. exiting')
-                process.exit(0)
-            }
-            // console.log('Started refreshing application slash commands.');
-            /*
-                        await rest.put(
-                            Routes.applicationCommands(bot.user.id),
-                            { body: commands },
-                        );//*/
-            // console.log(cmdToDc)
-            if (!fs.existsSync('./commands.json')) fs.writeFileSync('./commands.json', '{}')
-            /**
-             * @type {Object}
-             */
-            var oldCommands = fs.readFileSync('./commands.json')
-            // @ts-ignore
-            oldCommands = JSON.stringify(JSON.parse(oldCommands))
-            if (JSON.stringify(cmdToDc) != oldCommands) {
-                process.stdout.write(`refreshing slash commands... `)
+                if (args.get('del')) {
+                    process.stdout.write('clearing old commands... ')
+                    await rest.put(Routes.applicationCommands(bot.user.id), { body: [] })
+                    console.log('done. exiting')
+                    process.exit(0)
+                }
+                // console.log('Started refreshing application slash commands.');
+                /*
+                            await rest.put(
+                                Routes.applicationCommands(bot.user.id),
+                                { body: commands },
+                            );//*/
+                // console.log(cmdToDc)
+                if (!fs.existsSync('./commands.json')) fs.writeFileSync('./commands.json', '{}')
+                /**
+                 * @type {Object}
+                 */
+                var oldCommands = fs.readFileSync('./commands.json')
+                // @ts-ignore
+                oldCommands = JSON.stringify(JSON.parse(oldCommands))
+                if (JSON.stringify(cmdToDc) != oldCommands) {
+                    process.stdout.write(`refreshing slash commands... `)
 
-                // var applications = await bot.get
-                await rest.put(Routes.applicationCommands(bot.user.id), { body: cmdToDc })
-
-                console.log('DONE')
+                    // var applications = await bot.get
+                    await rest.put(Routes.applicationCommands(bot.user.id), { body: cmdToDc }) // todo: re add them after moving to sqlite
 
 
-                console.log('Successfully reloaded application slash commands.')
+                    console.log('DONE')
+
+
+                    console.log('Successfully reloaded application slash commands.')
+
+                }
+                else {
+                    console.log('no changes. skipping upload to discord')
+                }
+                fs.writeFileSync('./commands.json', JSON.stringify(cmdToDc, null, 2))
 
             }
             else {
-                console.log('no changes. skipping upload to discord')
+                console.log("shard is NOT 0. not checking for changed slash commands")
+
             }
-            fs.writeFileSync('./commands.json', JSON.stringify(cmdToDc, null, 2))
-
-
 
 
             try {
                 for (let cmd of commands) {
                     if (cmd.startup) {
-                        await cmd.startup(bot, db, errorMessager)
+                        await cmd.startup(bot, database, errorMessager)
                     }
                     else {
                         console.log(`skipping ${cmd?.data?.name ?? cmd?.fName} startup`)
@@ -240,7 +264,7 @@ bot.on('ready', () => {
                     if (cmd.interval) {
                         if (cmd.timed) {
                             setInterval(async () => {
-                                await cmd.timed(bot, db, errorMessager)
+                                await cmd.timed(bot, database, errorMessager)
                             }, cmd.interval)
                         }
                         else {
@@ -275,17 +299,22 @@ bot.on('ready', () => {
 
     // set bot status
     // bot.user.setActivity('Now with slash commands')
-    setInterval(() => {
+    setInterval(async () => {
 
         if (!ready) return
 
         let statusses = config.statuses
         if (statusses && statusses.length == 0) return
         let status = statusses[Math.floor(Math.random() * statusses.length)]
-        let stats = tools.getStatsFromDB(db.getData("/"))
+        // let stats = tools.getStatsFromDB(db.getData("/"))
+        let stats = {}
 
-        stats.avgDowntime = Math.round(stats.avgDowntime)
-        stats.avgUptime = Math.round(stats.avgUptime)
+        // stats.avgDowntimeTXT = prettyMs(tools.roundToNearest(Math.round(stats.avgDowntime), downPow))
+        // stats.avgUptimeTXT = prettyMs(tools.roundToNearest(Math.round(stats.avgUptime), upPow))
+
+        stats.avgDowntimeTXT = "currently not available"
+        stats.avgUptimeTXT = "currently not available"
+
 
         let downPow = 1
         let upPow = 1
@@ -294,15 +323,20 @@ bot.on('ready', () => {
 
         if (stats.avgUptime >= Math.pow(10, 6)) upPow = 6
 
+        let shardsGuilds = await bot.shard.fetchClientValues('guilds.cache.size');
+        let totalGuildsSize = shardsGuilds.reduce((acc, guildCount) => acc + guildCount, 0);
         // console.log(stats)
         // replace all variables
-        status = status.replace('{guilds}', bot.guilds.cache.size)
+        status = status
+            .replace('{guilds}', totalGuildsSize)
             .replace('{manageGuilds}', stats.managingGuilds)
             .replace('{manageUsers}', stats.managingUsers)
-            .replace('{avgDowntimePRETTY}', prettyMs(tools.roundToNearest(stats.avgDowntime, downPow)))
-            .replace('{avgDowntime}', stats.avgDowntime)
-            .replace('{avgUptimePRETTY}', prettyMs(tools.roundToNearest(stats.avgUptime, upPow)))
-            .replace('{avgUptime}', stats.avgUptime)
+            .replace('{avgDowntimePRETTY}', stats.avgDowntimeTXT)
+            // .replace('{avgDowntime}', stats.avgDowntime)
+            .replace('{avgUptimePRETTY}', stats.avgUptimeTXT)
+            // .replace('{avgUptime}', stats.avgUptime)
+            .replace('{currentShard}', (bot.shard?.ids[0] ?? 0) + 1)
+            .replace('{totalShards}', bot.shard?.count ?? 1)
 
 
         bot.user.setActivity(status)
@@ -327,7 +361,7 @@ bot.on('interactionCreate', async interaction => {
                 if (cmd?.data?.name == interaction.commandName) {
                     console.log('autocomplete for', interaction.commandName)
                     if (cmd.autocomplete) {
-                        await cmd.autocomplete(bot, interaction, db, errorMessager)
+                        await cmd.autocomplete(bot, interaction, database, errorMessager)
                     }
                     else {
                         console.log(`no autocomplete for ${cmd.data.name}`)
@@ -354,7 +388,7 @@ bot.on('interactionCreate', async interaction => {
             for (let cmd of commands) {
                 if (cmd?.data?.name == interaction.commandName) {
                     // @ts-ignore
-                    console.log(`a new command ${cmd.data.name} was called by ${interaction.user?.tag} in guild ${interaction.guild?.name} in channel ${interaction.channel?.name} `)
+                    console.log(`[shard ${bot.shard.ids[0]+1}/${bot.shard?.count}] a new command ${cmd.data.name} was called by ${interaction.user?.tag} in guild ${interaction.guild?.name} in channel ${interaction.channel?.name} `)
                     // get all args
                     //@ts-ignore
                     var args = interaction.options._hoistedOptions
@@ -368,7 +402,7 @@ bot.on('interactionCreate', async interaction => {
                         rateLimitData = cd.check(interaction.user.id)
                         if (rateLimitData.pass) {
                             // cooldown passed
-                            await cmd.execute(bot, interaction, db, errorMessager)
+                            await cmd.execute(bot, interaction, database, errorMessager)
                         }
                         else {
                             // blocked by cooldown
@@ -383,7 +417,7 @@ bot.on('interactionCreate', async interaction => {
                         }
                     }
                     else {
-                        await cmd.execute(bot, interaction, db, errorMessager)
+                        await cmd.execute(bot, interaction, database, errorMessager)
                     }
                     // console.log('END command OUTPUT')
                 }
@@ -473,7 +507,7 @@ function errorMessager(interaction, e) {
             })
         }
         else {
-            if (typeof interaction.channel?.send == 'function') {
+            if (typeof interaction?.channel?.send == 'function') {
                 interaction.channel.send(getErrMes(e)).catch(err => {
                     console.error(err)
                 })

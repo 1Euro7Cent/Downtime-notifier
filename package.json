@@ -4,7 +4,6 @@
     "discord-api-types": "^0.31.2",
     "discord.js": "^13.10.3",
     "node-cooldown": "^0.0.4",
-    "node-json-db": "^1.5.0",
     "pretty-ms": "^7.0.1",
     "startup-args": "^0.0.1"
   },
@@ -27,5 +26,5 @@
   "keywords": [],
   "author": "1euro7cent",
   "license": "MIT",
-  "description": "this tracks downtime for discord bots"
+  "description": "this tracks downtime for discord bots...     \"node-json-db\": \"^1.5.0\","
 }

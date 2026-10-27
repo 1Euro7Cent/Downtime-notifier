@@ -1,8 +1,8 @@
 const { Client, CommandInteraction, MessageEmbed, Permissions, MessageActionRow, MessageButton, Interaction, Message } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
-const tools = require('../../tools')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const tools = require('../../src/tools')
 const fs = require('fs')
 const prettyMs = require('pretty-ms')
 
@@ -10,7 +10,7 @@ const prettyMs = require('pretty-ms')
 let deleteRequests = {}
 
 module.exports = {
-    disabled: false,
+    disabled: true,
     data: new SlashCommandBuilder()
         .setName('data')
         .setDescription('Manage the data stored in the bot.')
@@ -34,6 +34,17 @@ module.exports = {
      * @param {JsonDB} db
      */
     async execute(bot, interaction, db) {
+
+        interaction.reply({
+            embeds: [
+                new MessageEmbed()
+                    .setTitle("Not implemented")
+                    .setDescription("This command is not yet implemented due to important need for database change \ndont worry this command will work soon")
+                    .setColor(0xff0000)
+            ],
+            ephemeral: true
+        })
+        return
         //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             let option = interaction.options.getString("option")

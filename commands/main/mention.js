@@ -1,8 +1,9 @@
 const { Client, CommandInteraction, MessageEmbed, Permissions, GuildChannel, TextChannel, GuildMember, AutocompleteInteraction, User } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
-const tools = require('../../tools')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const tools = require('../../src/tools')
+const { type } = require('os')
 
 module.exports = {
     disabled: false,
@@ -39,58 +40,61 @@ module.exports = {
      * this is triggered when the user requests a aoutocompletion
      * @param {Client} bot
      * @param {AutocompleteInteraction} interaction
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
      */
-    async autocomplete(bot, interaction, db, errorMessager) {
+    async autocomplete(bot, interaction, database, errorMessager) {
 
         if (interaction.guild != null) {
 
-            let data = db.getData('/')
-            let gData = data[interaction.guild.id]
+            let userIds = database.prepare("SELECT userId FROM users WHERE guildId = ?").all(interaction.guild.id)
+            // console.log("userIds", userIds)
 
-            if (!gData) {
-                gData = {
-                    broadcastChannel: null,
-                    users: [],
-                    notifications: []
-                }
-            }
-            if (!gData.notifications) gData.notifications = {}
+            // let data = db.getData('/')
+            // let gData = data[interaction.guild.id]
 
-            let userIds = gData.users.map(u => u.id)
+            // if (!gData) {
+            //     gData = {
+            //         broadcastChannel: null,
+            //         users: [],
+            //         notifications: []
+            //     }
+            // }
+            // if (!gData.notifications) gData.notifications = {}
+
+            // let userIds = gData.users.map(u => u.id)
 
             /**
              * @type {User[]}
              */
             let users = await Promise.all(userIds.map(async id => {
-                let user = await bot.users.fetch(id).catch(e => null)
+                let user = await bot.users.fetch(id.userId).catch(e => null)
                 return user
             }))
+            // console.log("users", users)
 
             let focusedValue = interaction.options.getFocused()
 
+            let watchingUsers = database.prepare("SELECT watchId FROM notifications WHERE guildId = ? AND mentionUserId = ?").all(interaction.guild.id, interaction.user.id)
+            // console.log("watchingUsers", watchingUsers)
+
             let removableUsers = users.filter(u => {
-                if (gData.notifications[interaction.user.id]) {
-                    return gData.notifications[interaction.user.id].includes(u.id)
-                }
-                return false
-            })
-            // console.log(removableUsers)
+                if (u == null || u.id == null) return false;
+                return watchingUsers.some(w => w.watchId === u.id);
+                // return watchingUsers.includes(u.userId)
+            });
+            // console.log("removeableUsers", removableUsers)
 
             let possibleValues = users.filter(u => u != null && (u.username.toLowerCase().includes(focusedValue.toLowerCase())
                 || u.tag.toLowerCase().includes(focusedValue.toLowerCase())
                 || u.id.toLowerCase().includes(focusedValue.toLowerCase())
             ))
 
-            let respondData = possibleValues.map(choice => ({ name: choice.tag + (removableUsers.includes(choice) ? ' (Removeable)' : ''), value: choice.id }))
+            let respondData = possibleValues.map(choice => ({ name: choice.username + (removableUsers.includes(choice) ? ' (Removeable)' : ''), value: choice.id }))
 
-            if (respondData.length > 0) {
-                if (gData.notifications[interaction.user.id] && gData.notifications[interaction.user.id].includes('all'))
-                    respondData.unshift({ name: 'All (Removeable)', value: 'all' })
-                else
-                    respondData.unshift({ name: 'All', value: 'all' })
-            }
+
+            respondData.unshift({ name: 'All', value: 'all' })
+
 
             await interaction.respond(respondData)
         }
@@ -102,45 +106,52 @@ module.exports = {
      * this runs when the command is executed
      * @param {Client} bot
      * @param {CommandInteraction} interaction
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
      */
-    async execute(bot, interaction, db, errorMessager) {
+    async execute(bot, interaction, database, errorMessager) {
         // @ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
-            let data = db.getData('/')
-            // @ts-ignore
-            let gData = data[interaction.guild?.id]
 
-            if (!gData) {
-                gData = {
-                    broadcastChannel: null,
-                    users: [],
-                    notifications: {}
-                }
-            }
+
 
             let state = interaction.options.getString('state')
             let user = interaction.options.getString('user')
 
-            let userNotifications = gData.notifications[interaction.user.id]
+            // let userNotifications = gData.notifications[interaction.user.id]
+
 
             switch (state) {
                 case 'enable':
                     if (user == 'all') {
-                        gData.notifications[interaction.user.id] = ['all']
+                        // gData.notifications[interaction.user.id] = ['all']
+
+                        // get all available users and add all of them
+
+
+                        let validUsersToAdd = database.prepare(`INSERT INTO notifications (guildId, mentionUserId, watchId)
+                            SELECT u.guildId, ?, u.userid
+                            FROM users u
+                            WHERE u.guildId = ?
+                            AND NOT EXISTS (
+                                SELECT 1 
+                                FROM notifications n 
+                                WHERE n.guildId = u.guildId 
+                                    AND n.watchId = u.userid
+                            );`).all(interaction.user.id, interaction.guild.id)
+
+
                     }
                     else {
-                        if (!userNotifications) {
-                            userNotifications = []
-                        }
 
-                        if (userNotifications.includes('all')) {
+                        let exists = database.prepare("SELECT * FROM notifications WHERE guildId = ? AND mentionUserId = ? AND watchId = ?").get(interaction.guild?.id, interaction.user.id, user)
+
+                        if (exists) {
                             await interaction.reply({
                                 embeds: [
                                     new MessageEmbed()
                                         .setTitle('Error')
-                                        .setDescription('You are already being mentioned about all users')
+                                        .setDescription('You are already being mentioned about this user')
                                         .setColor(0xff0000)
 
                                 ]
@@ -149,24 +160,12 @@ module.exports = {
                         }
                         else {
 
-                            if (userNotifications.includes(user)) {
-                                await interaction.reply({
-                                    embeds: [
-                                        new MessageEmbed()
-                                            .setTitle('Error')
-                                            .setDescription('You are already being mentioned about this user')
-                                            .setColor(0xff0000)
+                            // userNotifications.push(user)
 
-                                    ]
-                                })
-                                return
-                            }
-                            else {
-
-                                userNotifications.push(user)
-                            }
-                            gData.notifications[interaction.user.id] = userNotifications
+                            database.prepare("INSERT INTO notifications (guildId, mentionUserId, watchId) VALUES (?, ?, ?)").run(interaction.guild?.id, interaction.user.id, user)
                         }
+                        // gData.notifications[interaction.user.id] = userNotifications
+
                     }
 
                     await interaction.reply({
@@ -181,7 +180,8 @@ module.exports = {
 
                 case 'disable':
                     if (user == 'all') {
-                        delete gData.notifications[interaction.user.id]
+
+                        database.prepare("DELETE FROM notifications WHERE guildId = ? AND mentionUserId = ?").run(interaction.guild?.id, interaction.user.id)
 
                         await interaction.reply({
                             embeds: [
@@ -193,60 +193,41 @@ module.exports = {
                         })
                     }
                     else {
-                        if (!userNotifications) {
-                            userNotifications = []
-                        }
 
-                        if (userNotifications.includes('all')) {
-                            // todo: remove all and add all(individual) users except the one being removed
+                        let exists = database.prepare("SELECT * FROM notifications WHERE guildId = ? AND mentionUserId = ? AND watchId = ?").get(interaction.guild?.id, interaction.user.id, user)
+
+                        if (exists) {
+                            
+                            database.prepare("DELETE FROM notifications WHERE guildId = ? AND mentionUserId = ? AND watchId = ?").run(interaction.guild?.id, interaction.user.id, user)
+                        }
+                        else {
                             await interaction.reply({
                                 embeds: [
                                     new MessageEmbed()
                                         .setTitle('Error')
-                                        .setDescription('You are already being mentioned about all users. remove all and then add specific users')
+                                        .setDescription('That user is not in your mention list')
                                         .setColor(0xff0000)
 
                                 ]
                             })
+                            return
                         }
-                        else {
-                            if (userNotifications.includes(user)) {
-                                userNotifications.splice(userNotifications.indexOf(user), 1)
-                                gData.notifications[interaction.user.id] = userNotifications
-                            }
-                            else {
-                                await interaction.reply({
-                                    embeds: [
-                                        new MessageEmbed()
-                                            .setTitle('Error')
-                                            .setDescription('That user is not in your mention list')
-                                            .setColor(0xff0000)
 
-                                    ]
-                                })
-                                return
-                            }
+                        await interaction.reply({
+                            embeds: [
+                                new MessageEmbed()
+                                    .setTitle('Success')
+                                    .setDescription(`You will no longer be mentioned when <@${user}> goes offline / online`)
+                                    .setColor(0x00ff00)
+                            ]
+                        })
 
-                            await interaction.reply({
-                                embeds: [
-                                    new MessageEmbed()
-                                        .setTitle('Success')
-                                        .setDescription(`You will no longer be mentioned when <@${user}> goes offline / online`)
-                                        .setColor(0x00ff00)
-                                ]
-                            })
-                        }
 
                     }
 
 
                     break
             }
-
-            db.push('/', data)
-
-
-
 
         } else {
             await interaction.reply('You do not have permission to do that')

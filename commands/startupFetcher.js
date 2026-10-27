@@ -1,12 +1,12 @@
 const { Client, CommandInteraction, MessageEmbed, TextChannel } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
-const tools = require('../tools')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+// const tools = require('../tools')
 const prettyMs = require('pretty-ms')
 
 module.exports = {
-    disabled: false,
+    disabled: true,
     noCommand: true,
     /**
      * this runs on startup
@@ -14,6 +14,7 @@ module.exports = {
      * @param {JsonDB} db
      */
     async startup(bot, db, errorMessager) {
+        throw new Error('this command is no longer functional')
         console.log('---- Fetcher startup ----')
         let start = Date.now()
         // let db = new JsonDB(new Config("database", false, true, '/'))

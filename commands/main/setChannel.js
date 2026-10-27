@@ -1,11 +1,11 @@
 const { Client, CommandInteraction, MessageEmbed, Permissions, TextChannel } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
 // database stuff
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
 const { ChannelType } = require('discord-api-types/v10')
 
-const tools = require('../../tools')
+const tools = require('../../src/tools')
 
 
 module.exports = {
@@ -34,9 +34,9 @@ module.exports = {
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      */
-    async execute(bot, interaction, db) {
+    async execute(bot, interaction, database) {
         // @ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             /**
@@ -45,19 +45,11 @@ module.exports = {
             // @ts-ignore
             let channel = interaction.options.getChannel('channel')
 
-            // let db = new JsonDB(new Config("database", true, true, '/'))
-            let data = db.getData('/')
-            let gData = data[interaction.guild.id]
-            if (!gData) gData = {
-                broadcastChannel: null,
-                users: [],
-                notifications: {}
-            }
             // check if we have permission to send messages in the channel
 
             if (!channel) {
                 // remove the channel
-                gData.broadcastChannel = null
+                database.prepare("UPDATE guilds SET broadcastChannelId = NULL WHERE guildId = ?").run(interaction.guild.id)
                 await interaction.reply({
                     embeds: [
                         new MessageEmbed()
@@ -81,12 +73,8 @@ module.exports = {
                     })
                     return
                 }
-                gData.broadcastChannel = channel.id
-            }
-
-            data[interaction.guild.id] = gData
-            db.push('/', data)
-            if (gData.broadcastChannel) {
+                
+                database.prepare("UPDATE guilds SET broadcastChannelId = ? WHERE guildId = ?").run(channel.id, interaction.guild.id)
                 await interaction.reply({
                     embeds: [
                         new MessageEmbed()

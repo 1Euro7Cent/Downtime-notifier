@@ -1,8 +1,8 @@
 const { Client, CommandInteraction, MessageEmbed, Permissions, AutocompleteInteraction, User } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
-const tools = require('../../tools')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const tools = require('../../src/tools')
 
 module.exports = {
     disabled: false,
@@ -25,26 +25,16 @@ module.exports = {
  * this is triggered when the user requests a aoutocompletion
  * @param {Client} bot
  * @param {AutocompleteInteraction} interaction
- * @param {JsonDB} db
+ * @param {import('node:sqlite').DatabaseSync} database
  * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
  */
-    async autocomplete(bot, interaction, db, errorMessager) {
+    async autocomplete(bot, interaction, database, errorMessager) {
 
         if (interaction.guild != null) {
 
-            let data = db.getData('/')
-            let gData = data[interaction.guild.id]
+            let userIds = database.prepare("SELECT userId FROM users WHERE guildId = ?").all(interaction.guild.id).map(u => u.userId)
 
-            if (!gData) {
-                gData = {
-                    broadcastChannel: null,
-                    users: [],
-                    notifications: []
-                }
-            }
-            if (!gData.notifications) gData.notifications = {}
 
-            let userIds = gData.users.map(u => u.id)
 
             /**
              * @type {User[]}
@@ -80,9 +70,9 @@ module.exports = {
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      */
-    async execute(bot, interaction, db) {
+    async execute(bot, interaction, database) {
         //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             // let user = interaction.options.getUser('user')
@@ -92,30 +82,8 @@ module.exports = {
             let user = interaction.options.getString('user')
             user = await bot.users.fetch(user).catch(e => null)
             // let db = new JsonDB(new Config("database", true, true, '/'))
-            let data = db.getData('/')
-            let gData = data[interaction.guild.id]
-            if (!gData) gData = {
-                broadcastChannel: null,
-                users: []
-            }
-            let users = gData.users.filter(u => u.id == user.id)
-            if (users.length == 0) {
 
-                await interaction.reply({
-                    embeds: [
-                        new MessageEmbed()
-                            .setTitle('Error')
-                            .setDescription(`User \`${user.username}\` is not in the watchlist`)
-                            .setColor(0xff0000)
-                    ]
-
-                })
-                return
-            }
-
-            gData.users = tools.removeElemByName(gData.users, users[0])
-
-            db.push('/', data)
+            database.prepare("DELETE FROM users WHERE guildId = ? AND userId = ?").run(interaction.guild.id, user.id)
 
             await interaction.reply({
                 embeds: [

@@ -1,11 +1,11 @@
 const { Client, CommandInteraction, MessageEmbed, Permissions, GuildChannel, TextChannel, GuildMember, AutocompleteInteraction, Presence } = require('discord.js')
 const { SlashCommandBuilder } = require('@discordjs/builders')
-const { JsonDB } = require('node-json-db')
-const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
-const tools = require('../../tools')
+// const { JsonDB } = require('node-json-db')
+// const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
+const tools = require('../../src/tools')
 
 module.exports = {
-    disabled: false,
+    disabled: true,
     data: new SlashCommandBuilder()
         .setName('test')
         .setDescription('Test the bot with a fake downtime.')
@@ -45,6 +45,12 @@ module.exports = {
  * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
  */
     async autocomplete(bot, interaction, db, errorMessager) {
+        await interaction.respond([
+            {name:"This command is not yet implemented due", value: "a"},
+            {name:"to important need for database change", value: "b"},
+            {name:"dont worry this command will work soon", value: "c"}
+        ])
+        return// todo: implement test command
 
         if (interaction.guild != null) {
 
@@ -99,6 +105,17 @@ module.exports = {
      * @param {JsonDB} db
      */
     async execute(bot, interaction, db) {
+
+        interaction.reply({
+            embeds: [
+                new MessageEmbed()
+                    .setTitle("Not implemented")
+                    .setDescription("This command is not yet implemented due to important need for database change \ndont worry this command will work soon")
+                    .setColor(0xff0000)
+            ],
+            ephemeral: true
+        })
+        return
         //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             // let user = interaction.options.getUser('user')
