@@ -17,7 +17,7 @@
     ]
   },
   "name": "downtime-notifier",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "main": "index.js",
   "scripts": {
     "clean": "rmdir node_modules /s /q && rmdir logs /s /q",
@@ -26,5 +26,5 @@
   "keywords": [],
   "author": "1euro7cent",
   "license": "MIT",
-  "description": "this tracks downtime for discord bots...     \"node-json-db\": \"^1.5.0\","
+  "description": "this tracks downtime for discord bots"
 }
