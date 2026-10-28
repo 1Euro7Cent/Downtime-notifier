@@ -139,19 +139,25 @@ function migrateDatabaseFromJsonToSqlite(jsonDbData, sqliteDb) {
 
             // Migrate texts
             if (jsonDbData[guild].texts){
-                sqliteDb.exec(`INSERT OR IGNORE INTO texts (
+                sqliteDb.prepare(`INSERT OR IGNORE INTO texts (
                     guildId, 
                     onlineDescription, 
                     offlineDescription, 
                     onlineTitle, 
                     offlineTitle
                 ) VALUES (
-                    '${guild}', 
-                    '${jsonDbData[guild].texts.onlineDescription || null}', 
-                    '${jsonDbData[guild].texts.offlineDescription || null}', 
-                    '${jsonDbData[guild].texts.onlineTitle || null}', 
-                    '${jsonDbData[guild].texts.offlineTitle || null}'
-                )`)
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
+                )`).run(
+                    guild,
+                    jsonDbData[guild].texts.onlineDescription || null,
+                    jsonDbData[guild].texts.offlineDescription || null,
+                    jsonDbData[guild].texts.onlineTitle || null,
+                    jsonDbData[guild].texts.offlineTitle || null
+                )
             }
 
         }

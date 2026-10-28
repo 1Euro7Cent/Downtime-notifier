@@ -3,7 +3,6 @@ database.json
 database.json.bak
 /db
 node_modules
-package-lock.json
 logs
 temp
 oldDb.json

@@ -5,7 +5,8 @@
     "discord.js": "^13.10.3",
     "node-cooldown": "^0.0.4",
     "pretty-ms": "^7.0.1",
-    "startup-args": "^0.0.1"
+    "startup-args": "^0.0.1",
+    "zlib-sync": "^0.1.10"
   },
   "nodemonConfig": {
     "ignore": [
@@ -17,7 +18,7 @@
     ]
   },
   "name": "downtime-notifier",
-  "version": "2.7.2",
+  "version": "2.7.3",
   "main": "index.js",
   "scripts": {
     "clean": "rmdir node_modules /s /q && rmdir logs /s /q",
