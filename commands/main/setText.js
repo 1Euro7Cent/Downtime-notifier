@@ -9,7 +9,7 @@ const tools = require('../../src/tools')
 
 
 module.exports = {
-    disabled: true,
+    disabled: false,
     noCommand: false,
     data: new SlashCommandBuilder()
         .setName('settext')
@@ -42,8 +42,8 @@ module.exports = {
         })
         .addStringOption(option => {
             option.setName('text')
-                .setDescription('The text to set. Type "reset" to reset. {tpye}=bot/user, {name}=name, {status}=online/offline')
-                .setRequired(true)
+                .setDescription('The text to set. leave blank to reset. {tpye}=bot/user, {name}=name, {status}=online/offline')
+                .setRequired(false)
 
             return option
         })
@@ -60,10 +60,11 @@ module.exports = {
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      */
-    async execute(bot, interaction, db) {
+    async execute(bot, interaction, database) {
 
+        /*
         interaction.reply({
             embeds: [
                 new MessageEmbed()
@@ -74,6 +75,7 @@ module.exports = {
             ephemeral: true
         })
         return
+        //*/
 
         // @ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
@@ -82,37 +84,35 @@ module.exports = {
 
 
             // let db = new JsonDB(new Config("database", true, true, '/'))
-            let data = db.getData('/')
-            let gData = data[interaction.guild.id]
-            if (!gData) gData = {
-                broadcastChannel: null,
-                users: [],
-                notifications: {},
-                texts: {}
+
+            let exists = database.prepare("SELECT guildId FROM texts WHERE guildId = ?").get(interaction.guild.id)
+
+            if (!exists) {
+                database.prepare("INSERT INTO texts (guildId) VALUES (?)").run(interaction.guild?.id)
             }
 
 
             // filter out the type
 
-            if (!gData.texts) {
-                gData.texts = {}
-            }
 
 
-            if (text == 'reset') {
-                delete gData.texts[type]
+            let safeType = type.replace(/[^a-zA-Z]/g, '')
+            if ((!text) || text == 'reset') {
+                // delete gData.texts[type]
+                database.prepare(`UPDATE texts SET ${safeType} = NULL WHERE guildId = ?`).run(interaction.guild?.id)
             }
             else {
-                gData.texts[type] = text
+                // gData.texts[type] = text
+                database.prepare(`UPDATE texts SET ${safeType} = ? WHERE guildId = ?`).run(text, interaction.guild?.id)
             }
 
-            db.push('/', data)
+            // db.push('/', data)
 
             await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setTitle(`Success`)
-                        .setDescription(`Text for \`${type}\` has been set to ${text == 'reset' ? 'default' : ` \`\`\`\n${text}\n\`\`\` `}`)
+                        .setDescription(`Text for \`${type}\` has been set to ${!text ? 'default' : ` \`\`\`\n${text}\n\`\`\` `}`)
                         .setColor(0x00ff00)
                 ]
             })

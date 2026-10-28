@@ -120,6 +120,7 @@ module.exports = {
 		console.log('---- Initializing StatusChangeListener ----')
 		bot.on('presenceUpdate', async (oldPresence, newPresence) => {
 			if (!oldPresence) return
+			if (oldPresence.status === newPresence.status) return
 			try {
 				let usrID = newPresence.user?.id || oldPresence.user?.id || newPresence.userId || oldPresence.userId
 
@@ -159,6 +160,15 @@ module.exports = {
 
 				let notifications = database.prepare('SELECT * FROM notifications WHERE guildId = ? AND watchId = ?').all(newPresence.guild.id, user.userId)
 				// if the user gone online
+
+				let channel
+				try {
+					channel = await newPresence.guild.channels.fetch(broadcastChannel)
+				}
+				catch {
+					channel = await oldPresence.guild.channels.fetch(broadcastChannel)
+				}
+
 				if (oldPresence.status == 'offline' && newPresence.status != 'offline') {
 					let mes = getMessage(bot, usr, user, 'online')
 					mes = insertPings(mes, notifications)
@@ -167,8 +177,6 @@ module.exports = {
 					 * @type {TextChannel}
 					 */
 
-					// @ts-ignore
-					let channel = await newPresence.guild.channels.fetch(broadcastChannel)
 
 					// console.log("channel", channel)
 					// console.log("hasPermissionToSendMessages", tools.hasPermissionToSendMessages(channel))
@@ -220,6 +228,7 @@ module.exports = {
 						console.log(`Removed broadcast channel of ${usr.username}`)
 					}
 				}
+
 				// if the user went offline
 				if (oldPresence.status != 'offline' && newPresence.status == 'offline') {
 					let mes = getMessage(bot, usr, user, 'offline')
@@ -231,7 +240,7 @@ module.exports = {
 					 */
 
 					// @ts-ignore
-					let channel = await newPresence.guild.channels.fetch(broadcastChannel)
+					// let channel = await newPresence.guild.channels.fetch(broadcastChannel)
 
 					database.prepare('UPDATE users SET wentOffline = ? WHERE guildId = ? AND userId = ?').run(Date.now(), newPresence.guild.id, usrID)
 					if (channel && tools.hasPermissionToSendMessages(channel)) {
@@ -273,6 +282,7 @@ module.exports = {
 					}
 
 				}
+
 			} catch (e) {
 				errorMessager(undefined, e)
 			}

@@ -73,8 +73,15 @@ module.exports = {
                     })
                     return
                 }
-                
-                database.prepare("UPDATE guilds SET broadcastChannelId = ? WHERE guildId = ?").run(channel.id, interaction.guild.id)
+
+                let guildIsInsideDB = database.prepare("SELECT * FROM guilds WHERE guildId = ?").get(interaction.guild?.id)
+                if (!guildIsInsideDB) {
+                    database.prepare("INSERT INTO guilds (guildId, broadcastChannelId) VALUES (?,?)").run(interaction.guild?.id, channel.id)
+                }
+                else {
+                    database.prepare("UPDATE guilds SET broadcastChannelId = ? WHERE guildId = ?").run(channel.id, interaction.guild.id)
+                }
+
                 await interaction.reply({
                     embeds: [
                         new MessageEmbed()

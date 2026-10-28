@@ -159,4 +159,77 @@ function migrateDatabaseFromJsonToSqlite(jsonDbData, sqliteDb) {
 
 }
 
-module.exports = { checkAndUpdateDatabaseIntegrity,migrateDatabaseFromJsonToSqlite }
+/**
+ * Creates a JSON-compatible dump of the database. When a guild ID is passed,
+ * only that guild is included.
+ * @param {import('node:sqlite').DatabaseSync} sqliteDb
+ * @param {string | undefined} guildId
+ * @returns {Record<string, {
+ *   broadcastChannel: string | null,
+ *   users: {id: string, downThreshold: number, wentOffline: number | null, wentOnline: number | null}[],
+ *   notifications?: Record<string, string[]>,
+ *   texts?: {onlineDescription: string | null, offlineDescription: string | null, onlineTitle: string | null, offlineTitle: string | null}
+ * }>} */
+function jsonDump(sqliteDb, guildId) {
+    const dump = {}
+    const guilds = guildId === undefined
+        ? sqliteDb.prepare('SELECT guildId, broadcastChannelId FROM guilds ORDER BY guildId').all()
+        : sqliteDb.prepare('SELECT guildId, broadcastChannelId FROM guilds WHERE guildId = ?').all(guildId)
+
+    const usersStatement = sqliteDb.prepare(`
+        SELECT userId, downThreshold, wentOffline, wentOnline
+        FROM users
+        WHERE guildId = ?
+        ORDER BY userId
+    `)
+    const notificationsStatement = sqliteDb.prepare(`
+        SELECT mentionUserId, watchId
+        FROM notifications
+        WHERE guildId = ?
+        ORDER BY mentionUserId, watchId
+    `)
+    const textsStatement = sqliteDb.prepare(`
+        SELECT onlineDescription, offlineDescription, onlineTitle, offlineTitle
+        FROM texts
+        WHERE guildId = ?
+    `)
+
+    for (const guild of guilds) {
+        const guildData = {
+            broadcastChannel: guild.broadcastChannelId,
+            users: usersStatement.all(guild.guildId).map(user => ({
+                id: user.userId,
+                downThreshold: user.downThreshold,
+                wentOffline: user.wentOffline,
+                wentOnline: user.wentOnline,
+            })),
+        }
+
+        const notifications = notificationsStatement.all(guild.guildId)
+        if (notifications.length > 0) {
+            guildData.notifications = {}
+            for (const notification of notifications) {
+                if (!guildData.notifications[notification.mentionUserId]) {
+                    guildData.notifications[notification.mentionUserId] = []
+                }
+                guildData.notifications[notification.mentionUserId].push(notification.watchId)
+            }
+        }
+
+        const texts = textsStatement.get(guild.guildId)
+        if (texts) {
+            guildData.texts = {
+                onlineDescription: texts.onlineDescription,
+                offlineDescription: texts.offlineDescription,
+                onlineTitle: texts.onlineTitle,
+                offlineTitle: texts.offlineTitle,
+            }
+        }
+
+        dump[guild.guildId] = guildData
+    }
+
+    return dump
+}
+
+module.exports = { checkAndUpdateDatabaseIntegrity, migrateDatabaseFromJsonToSqlite, jsonDump }

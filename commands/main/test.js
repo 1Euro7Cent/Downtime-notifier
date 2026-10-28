@@ -41,10 +41,11 @@ module.exports = {
  * this is triggered when the user requests a aoutocompletion
  * @param {Client} bot
  * @param {AutocompleteInteraction} interaction
- * @param {JsonDB} db
+ * @param {import('node:sqlite').DatabaseSync} database
  * @param {(arg0: CommandInteraction | null | undefined | import('discord.js').GuildTextBasedChannel, arg1: Error) => void} errorMessager
  */
-    async autocomplete(bot, interaction, db, errorMessager) {
+    async autocomplete(bot, interaction, database, errorMessager) {
+        /*
         await interaction.respond([
             {name:"This command is not yet implemented due", value: "a"},
             {name:"to important need for database change", value: "b"},
@@ -52,21 +53,16 @@ module.exports = {
         ])
         return// todo: implement test command
 
+        //*/
+
         if (interaction.guild != null) {
 
-            let data = db.getData('/')
-            let gData = data[interaction.guild.id]
 
-            if (!gData) {
-                gData = {
-                    broadcastChannel: null,
-                    users: [],
-                    notifications: []
-                }
-            }
-            if (!gData.notifications) gData.notifications = {}
+            let watchingUsers = database.prepare("SELECT userId FROM users WHERE guildId = ? AND userId = ?").all(interaction.guild.id, interaction.user.id)
 
-            let userIds = gData.users.map(u => u.id)
+            
+
+            let userIds = watchingUsers.map(u => u.userId)
 
             /**
              * @type {User[]}
@@ -102,10 +98,12 @@ module.exports = {
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      */
-    async execute(bot, interaction, db) {
+    async execute(bot, interaction, database) {
 
+
+        /*
         interaction.reply({
             embeds: [
                 new MessageEmbed()
@@ -116,6 +114,9 @@ module.exports = {
             ephemeral: true
         })
         return
+        //*/
+
+
         //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             // let user = interaction.options.getUser('user')
@@ -154,8 +155,7 @@ module.exports = {
                 })
                 return
             }
-            // let db = new JsonDB(new Config("database", true, true, '/'))
-            let data = db.getData('/')
+
 
             /** @type {Presence}*/
             // @ts-ignore
@@ -182,6 +182,11 @@ module.exports = {
             let currentPresence2 = structuredClone(currentPresence)
 
             currentPresence2.status = goOffline ? 'offline' : 'online'
+            if (!currentPresence.guild) currentPresence.guild = interaction.guild
+            if (!currentPresence2.guild) currentPresence2.guild = interaction.guild
+
+            if (typeof currentPresence.guild.channels.fetch !== 'function') currentPresence.guild.channels.fetch = interaction.guild?.channels.fetch
+            if (typeof currentPresence2.guild.channels.fetch !== 'function') currentPresence2.guild.channels.fetch = interaction.guild?.channels.fetch
 
             await interaction.reply({
                 embeds: [
@@ -200,80 +205,7 @@ module.exports = {
                 await bot.emit('presenceUpdate', currentPresence2, currentPresence)
             }, duration * 1000) // wait for the specified duration
 
-            // throw new Error('not implemented yet')
-            return
-            /**
-             * @type {{broadcastChannel: string | null, users: {id:string,wentOffline:number,wentOnline:number}[]}}
-             */
-            let gData = data[interaction.guild.id]
-            if (!gData) gData = {
-                broadcastChannel: null,
-                users: [],
-                notifications: {}
-            }
-            if (gData.users.filter(u => u.id == user.id).length > 0) {
-                await interaction.reply({
-                    embeds: [
-                        new MessageEmbed()
-                            .setTitle('Error')
-                            .setDescription(`User \`${user.username}\` is already in the watchlist`)
-                            .setColor(0xff0000)
-
-                    ]
-                })
-                return
-            }
-            process.stdout.write(`fetching user ${user.id}... `)
-            let fetched = await bot.users.fetch(user.id).catch(e => null)
-            if (!fetched) {
-                console.log('ERROR')
-                await interaction.reply({
-                    embeds: [
-                        new MessageEmbed()
-                            .setTitle('Error')
-                            .setDescription(`Failed to find user \`${user.username}\``)
-                            .setColor(0xff0000)
-
-                    ]
-                })
-                return
-            }
-            console.log(`Done`)
-            // make shure the bot can send messages in the channel bevore adding it
-
-            if (gData.broadcastChannel) {
-                let channel = await bot.channels.fetch(gData.broadcastChannel).catch(e => null)
-
-
-
-                if (channel && channel instanceof TextChannel && (!tools.hasPermissionToSendMessages(channel))) {
-                    await interaction.reply({
-                        embeds: [
-                            new MessageEmbed()
-                                .setTitle('Error')
-                                .setDescription(`I don't have permission to send messages in ${channel} (${channel.id})\n\nMake shure I can see the channel and send messages in it`)
-                                .setColor(0xff0000)
-
-                        ]
-                    })
-                    return
-
-                }
-            }
-
-            gData.users.push({ id: user.id })
-            data[interaction.guild.id] = gData
-
-            db.push('/', data)
-
-            await interaction.reply({
-                embeds: [
-                    new MessageEmbed()
-                        .setTitle(`Success`)
-                        .setDescription(`\`${user.username}\` has been added to the watchlist.` + (gData.broadcastChannel !== null ? `` : '\n\nYou need to set a broadcast channel for the bot to send notifications to.'))
-                        .setColor(0x00ff00)
-                ]
-            })
+ 
         }
         else {
             await interaction.reply({

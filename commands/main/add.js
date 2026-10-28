@@ -109,18 +109,28 @@ module.exports = {
                     return
 
                 }
-            }
-
-            database.prepare("INSERT INTO users (guildId, userId, downThreshold) VALUES (?, ?, ?)").run(interaction.guild.id, user.id, duration)
-
-            await interaction.reply({
-                embeds: [
-                    new MessageEmbed()
+                
+                database.prepare("INSERT INTO users (guildId, userId, downThreshold) VALUES (?, ?, ?)").run(interaction.guild.id, user.id, duration)
+                
+                await interaction.reply({
+                    embeds: [
+                        new MessageEmbed()
                         .setTitle(`Success`)
                         .setDescription(`\`${user.username}\` has been added to the watchlist.` + (broadcastChannel !== null ? `` : '\n\nYou need to set a broadcast channel for the bot to send notifications to.'))
                         .setColor(0x00ff00)
-                ]
-            })
+                    ]
+                })
+            }
+            else{
+                await interaction.reply({
+                    embeds:[
+                        new MessageEmbed()
+                        .setTitle("Error")
+                        .setDescription(`You dont have a broadcast channel set up. Set it up first before adding to watchlist \n(\`/setchannel\`)`)
+                        .setColor(0xff0000)
+                    ]
+                })
+            }
         }
         else {
             await interaction.reply({

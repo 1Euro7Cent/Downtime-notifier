@@ -3,6 +3,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders')
 // const { JsonDB } = require('node-json-db')
 // const { Config } = require('node-json-db/dist/lib/JsonDBConfig')
 const tools = require('../../src/tools')
+const sqlTools = require('../../src/sqlTools')
 const fs = require('fs')
 const prettyMs = require('pretty-ms')
 
@@ -10,7 +11,7 @@ const prettyMs = require('pretty-ms')
 let deleteRequests = {}
 
 module.exports = {
-    disabled: true,
+    disabled: false,
     data: new SlashCommandBuilder()
         .setName('data')
         .setDescription('Manage the data stored in the bot.')
@@ -31,10 +32,11 @@ module.exports = {
     /**
      * @param {Client} bot
      * @param {CommandInteraction} interaction
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      */
-    async execute(bot, interaction, db) {
+    async execute(bot, interaction, database) {
 
+        /*
         interaction.reply({
             embeds: [
                 new MessageEmbed()
@@ -45,14 +47,22 @@ module.exports = {
             ephemeral: true
         })
         return
+
+        //*/
+
+        
+        
         //@ts-ignore
         if (interaction.member.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) {
             let option = interaction.options.getString("option")
-            let data = db.getData('/')
-            // @ts-ignore
-            let gData = data[interaction.guild?.id]
 
-            if (!gData) {
+            // let data = db.getData('/')
+            // // @ts-ignore
+            // let gData = data[interaction.guild?.id]
+
+            let jsonDump = sqlTools.jsonDump(database,interaction.guild?.id)
+
+            if (!jsonDump || Object.keys(jsonDump).length === 0) {
                 await interaction.reply({
                     embeds: [
                         new MessageEmbed()
@@ -66,8 +76,8 @@ module.exports = {
             }
             switch (option) {
                 case 'get':
-                    let rawData = JSON.stringify(gData)
-                    let formattedData = JSON.stringify(gData, null, 4)
+                    let rawData = JSON.stringify(jsonDump)
+                    let formattedData = JSON.stringify(jsonDump, null, 4)
 
                     let message = `
 Raw:
@@ -168,10 +178,10 @@ Formatted:
     /**
      * this runs on startup
      * @param {Client} bot
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      * @param {(arg0: Interaction | import('discord.js').AnyChannel, arg1: Error) => void} errorMessager
      */
-    async startup(bot, db, errorMessager) {
+    async startup(bot, database, errorMessager) {
         bot.on("interactionCreate", async (interaction) => {
             if (!interaction.isButton()) return
             try {
@@ -183,10 +193,15 @@ Formatted:
                         hasPerms = true
                         switch (interaction.customId) {
                             case 'yes':
-                                let data = db.getData('/')
+                                // let data = db.getData('/')
 
-                                if (interaction.guild?.id) delete data[interaction.guild?.id]
-                                db.push("/", data)
+                                // if (interaction.guild?.id) delete data[interaction.guild?.id]
+                                // db.push("/", data)
+
+                                // database.prepare("DELETE FROM notifications where guildId = ?").run(interaction.guild?.id)
+                                // database.prepare("DELETE FROM texts where guildId = ?").run(interaction.guild?.id)
+                                // database.prepare("DELETE FROM users where guildId = ?").run(interaction.guild?.id)
+                                database.prepare("DELETE FROM guilds where guildId = ?").run(interaction.guild?.id)
 
                                 await interaction.reply({
                                     embeds: [
@@ -211,7 +226,7 @@ Formatted:
                                 break
                         }
 
-                        delete deleteRequests[deleteRequest]
+                        // delete deleteRequests[deleteRequest]
 
                         return
                     }
@@ -241,9 +256,9 @@ Formatted:
      * this runs every interval milliseconds
      * @param {Client} bot
      * @param {(arg0: Interaction | import('discord.js').AnyChannel, arg1: Error) => void} errorMessager
-     * @param {JsonDB} db
+     * @param {import('node:sqlite').DatabaseSync} database
      */
-    async timed(bot, db, errorMessager) {
+    async timed(bot, database, errorMessager) {
 
         for (let deleteRequest in deleteRequests) {
             let request = deleteRequests[deleteRequest]
