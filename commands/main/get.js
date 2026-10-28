@@ -30,6 +30,22 @@ module.exports = {
 
         await interaction.deferReply()
 
+        let guildIsInsideDB = database.prepare("SELECT * FROM guilds WHERE guildId = ?").get(interaction.guild?.id)
+
+        if (!guildIsInsideDB) {
+            interaction.editReply({
+
+                embeds: [
+                    new MessageEmbed()
+                        .setTitle('Error')
+                        .setDescription(`No data found for this guild`)
+                        .setColor(0xff0000)
+                ]
+
+            })
+            return
+        }
+
         let desc = ''
 
         let broadcastChannelID = database.prepare('SELECT broadcastChannelId FROM guilds WHERE guildId = ?').get(interaction.guild.id)?.broadcastChannelId

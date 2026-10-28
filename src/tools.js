@@ -91,6 +91,7 @@ function removeElemByName(arr, name) {
  */
 function hasPermissionToSendMessages(channel, member = channel?.guild?.members.me) {
     if (!channel) return false
+    if (typeof channel.permissionsFor !== 'function') return false
     // @ts-ignore
     let permissions = channel.permissionsFor(member)
     return !(permissions && (!permissions.has(Permissions.FLAGS.SEND_MESSAGES) || !permissions.has(Permissions.FLAGS.VIEW_CHANNEL)))

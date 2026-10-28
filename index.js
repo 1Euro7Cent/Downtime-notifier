@@ -378,6 +378,19 @@ bot.on('interactionCreate', async interaction => {
 
 
         if (!interaction.isCommand()) return
+        if (!interaction.guildId){
+            console.log("got command in dm. dismissing");
+            interaction.reply({
+                
+                embeds:[
+                    new MessageEmbed()
+                    .setTitle("Error")
+                    .setDescription("Commands in dms are not supported")
+                    .setColor(0xff0000)
+                ]
+            })
+            return
+        }
         // console.log('after isCommand')
         try {
             if (!commands || !ready) {

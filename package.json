@@ -17,7 +17,7 @@
     ]
   },
   "name": "downtime-notifier",
-  "version": "2.7.1",
+  "version": "2.7.2",
   "main": "index.js",
   "scripts": {
     "clean": "rmdir node_modules /s /q && rmdir logs /s /q",
