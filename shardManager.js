@@ -31,13 +31,24 @@ if (!isDatabaseValid && fs.existsSync('./database.json')) {
 
 }
 
+// FORCE WAL REWRITE & TRUNCATE TO MAIN DB FILE
+console.log('Forcing WAL checkpoint and rewrite to main database file...');
+try {
+    // TRUNCATE mode flushes everything to database.sqlite and clears the -wal file
+    database.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+    console.log('WAL successfully rewritten and truncated into main database file.');
+} catch (error) {
+    console.error('Failed to checkpoint WAL:', error);
+}
 
 const manager = new ShardingManager('./index.js', {
     token: config.token,
     // totalShards: "auto",
     totalShards: config.shards.totalShards ?? "auto",
-    respawn: config.shards.respawn,
+    respawn: config.shards.respawn
 })
 
 manager.on('shardCreate', (shard) => console.log(`Launched shard ${shard.id}`));
-manager.spawn();
+manager.spawn({
+    timeout: config.shards.spawnTimeout
+});

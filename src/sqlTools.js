@@ -83,25 +83,33 @@ function migrateDatabaseFromJsonToSqlite(jsonDbData, sqliteDb) {
             insertGuild.run(guild, broadcastChannel)
 
 
+            console.log('Migrating users')
             // Migrate users
             if (Array.isArray(jsonDbData[guild].users)) {
                 for (let user of jsonDbData[guild].users) {
-                    sqliteDb.exec(`INSERT OR IGNORE INTO users (
+                    sqliteDb.prepare(`INSERT OR IGNORE INTO users (
                         guildId, 
                         userId, 
                         downThreshold, 
                         wentOffline, 
                         wentOnline
                     ) VALUES (
-                        '${guild}', 
-                        '${user.id}', 
-                        ${user.downThreshold || 0}, 
-                        ${user.wentOffline || null}, 
-                        ${user.wentOnline || null}
-                    )`)
+                        ?, 
+                        ?, 
+                        ?, 
+                        ?, 
+                        ?
+                    )`).run(
+                        guild,
+                        user.id,
+                        user.downThreshold || 0,
+                        user.wentOffline || null,
+                        user.wentOnline || null
+                    )
                 }
             }
 
+            console.log('migrating notifications')
             // Migrate notifications
             if (jsonDbData[guild].notifications){
                 for (let mentionUserId in jsonDbData[guild].notifications) {
@@ -109,34 +117,44 @@ function migrateDatabaseFromJsonToSqlite(jsonDbData, sqliteDb) {
                         if (watchId === "all"){
 
                             for (let user of jsonDbData[guild].users) {
-                                sqliteDb.exec(`INSERT OR IGNORE INTO notifications (
+                                sqliteDb.prepare(`INSERT OR IGNORE INTO notifications (
                                     guildId, 
                                     mentionUserId, 
                                     watchId
                                 ) VALUES (
-                                    '${guild}', 
-                                    '${mentionUserId}', 
-                                    '${user.id}'
+                                    ?, 
+                                    ?, 
+                                    ?
                                 )`)
+                                .run(
+                                    guild,
+                                    mentionUserId,
+                                    user.id
+                                )
                             }
 
                         } 
                         else{
-                            sqliteDb.exec(`INSERT OR IGNORE INTO notifications (
+                            sqliteDb.prepare(`INSERT OR IGNORE INTO notifications (
                                 guildId, 
                                 mentionUserId, 
                                 watchId
                             ) VALUES (
-                                '${guild}', 
-                                '${mentionUserId}', 
-                                '${watchId}'
-                            )`)
+                                ?, 
+                                ?, 
+                                ?
+                            )`).run(
+                                guild,
+                                mentionUserId,
+                                watchId
+                            )
                         }
 
                     }
                 }
             }
 
+            console.log('migrating custoom texts')
             // Migrate texts
             if (jsonDbData[guild].texts){
                 sqliteDb.prepare(`INSERT OR IGNORE INTO texts (

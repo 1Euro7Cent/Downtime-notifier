@@ -35,6 +35,9 @@ const config = require('./config.json')
 
 let database = new DatabaseSync(`./${config.db.filePath}`)
 
+database.exec('PRAGMA journal_mode = WAL;');
+database.exec('PRAGMA busy_timeout = 5000;');
+
 
 
 let ready = false
@@ -54,26 +57,15 @@ process.on("SIGINT", function () {
     process.exit(-1)
 })
 
-/*
+//*
 process.on('exit', function (code) {
     console.log(`Process exited with code: ${code}`)
 
-    if (code != 0) {
-        if (!fs.existsSync('./dbBackups')) fs.mkdirSync('./dbBackups')
-        fs.writeFileSync(`./dbBackups/db${Date.now()}.json`, JSON.stringify(db.getData('/')))
-
-        let dircontent = fs.readdirSync('./dbBackups')
-        if (dircontent.length > 10) {
-            // delete the oldest file
-            let oldest = dircontent[0]
-            fs.unlinkSync(`./dbBackups/${oldest}`)
-        }
-    }
-    else {
-        db.save()
-    }
+    //exit the current database connection to make shure that everything is written to the database and no data is lost
+    console.log('Closing database connection...')
+    database.close()
 })
-    //*/
+//*/
 
 process.on('uncaughtException', err => {
     let date = new Date()
@@ -89,6 +81,12 @@ process.on('uncaughtException', err => {
     fs.writeFileSync(filename, err.stack)
     console.error(err)
     console.log(`log written to ${filename}`)
+    console.log('Closing database connection...')
+    try{
+    database.close()
+    }catch(e){
+        console.error('Failed to close database connection:', e)
+    }
     process.exit(1)
 })
 
@@ -378,15 +376,15 @@ bot.on('interactionCreate', async interaction => {
 
 
         if (!interaction.isCommand()) return
-        if (!interaction.guildId){
+        if (!interaction.guildId) {
             console.log("got command in dm. dismissing");
             interaction.reply({
-                
-                embeds:[
+
+                embeds: [
                     new MessageEmbed()
-                    .setTitle("Error")
-                    .setDescription("Commands in dms are not supported")
-                    .setColor(0xff0000)
+                        .setTitle("Error")
+                        .setDescription("Commands in dms are not supported")
+                        .setColor(0xff0000)
                 ]
             })
             return
@@ -401,7 +399,7 @@ bot.on('interactionCreate', async interaction => {
             for (let cmd of commands) {
                 if (cmd?.data?.name == interaction.commandName) {
                     // @ts-ignore
-                    console.log(`[shard ${bot.shard.ids[0]+1}/${bot.shard?.count}] a new command ${cmd.data.name} was called by ${interaction.user?.tag} in guild ${interaction.guild?.name} in channel ${interaction.channel?.name} `)
+                    console.log(`[shard ${bot.shard.ids[0] + 1}/${bot.shard?.count}] a new command ${cmd.data.name} was called by ${interaction.user?.tag} in guild ${interaction.guild?.name} in channel ${interaction.channel?.name} `)
                     // get all args
                     //@ts-ignore
                     var args = interaction.options._hoistedOptions
